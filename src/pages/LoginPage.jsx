@@ -1,6 +1,7 @@
 import { useState } from 'react'
-
+import { loginUser } from '../Services/api'
 import { Button } from "@/components/ui/button"
+import { useNavigate } from 'react-router-dom'
 import {
   Card,
   CardContent,
@@ -13,6 +14,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 
 export default function LoginPage({ onSwitchToSignUp, onLoginSuccess }) {
+  const navigate = useNavigate(); 
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [loading, setLoading] = useState(false)
@@ -24,26 +26,21 @@ export default function LoginPage({ onSwitchToSignUp, onLoginSuccess }) {
     setError('')
 
     try {
-      const response = await fetch('http://localhost:5000/api/auth/login', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password })
-      })
+      const data = await loginUser({ email, password })
       
-      const data = await response.json()
-      
-      if (response.ok && data.success) {
+      if (data.success) {
         localStorage.setItem('token', data.data.token)
         localStorage.setItem('user', JSON.stringify(data.data.user))
         alert("Logged in successfully!")
         if (onLoginSuccess) {
            onLoginSuccess(data.data.user)
         }
+         navigate("/chat");
       } else {
         setError(data.message || 'Login failed. Please check your credentials.')
       }
     } catch (err) {
-      setError('Failed to connect to the server.')
+      setError(err.message || 'Failed to connect to the server.')
     } finally {
       setLoading(false)
     }
@@ -110,7 +107,7 @@ export default function LoginPage({ onSwitchToSignUp, onLoginSuccess }) {
         <CardFooter className="flex flex-wrap items-center justify-center gap-1 text-sm text-muted-foreground">
           Don't have an account?{" "}
           <button 
-            onClick={onSwitchToSignUp}
+            onClick={() => navigate("/signup")}
             className="font-medium text-primary hover:underline underline-offset-4"
           >
             Sign up

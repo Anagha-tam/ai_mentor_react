@@ -1,6 +1,7 @@
 import { useState } from 'react'
-
+import { registerUser } from '../Services/api'
 import { Button } from "@/components/ui/button"
+import { useNavigate } from 'react-router-dom'
 import {
   Card,
   CardContent,
@@ -20,6 +21,7 @@ import {
 } from "@/components/ui/select"
 
 export default function SignUpPage({ onSwitchToLogin }) {
+  const navigate = useNavigate(); 
   const [firstName, setFirstName] = useState('')
   const [lastName, setLastName] = useState('')
   const [email, setEmail] = useState('')
@@ -37,30 +39,24 @@ export default function SignUpPage({ onSwitchToLogin }) {
     setError('')
     
     try {
-      const response = await fetch('http://localhost:5000/api/auth/register', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          firstName,
-          lastName,
-          email,
-          phonenumber: phone,
-          stream: stream.toLowerCase(),
-          class: parseInt(studentClass, 10),
-          password
-        })
+      const data = await registerUser({
+        firstName,
+        lastName,
+        email,
+        phonenumber: phone,
+        stream: stream.toLowerCase(),
+        class: parseInt(studentClass, 10),
+        password
       })
       
-      const data = await response.json()
-      
-      if (response.ok && data.success) {
+      if (data.success) {
         alert("Registration successful! Please log in.")
-        onSwitchToLogin() // switch to login view automatically
+        navigate("/login");
       } else {
         setError(data.message || 'Registration failed.')
       }
     } catch (err) {
-      setError('Failed to connect to the server.')
+      setError(err.message || 'Failed to connect to the server.')
     } finally {
       setLoading(false)
     }
@@ -202,7 +198,7 @@ export default function SignUpPage({ onSwitchToLogin }) {
         <CardFooter className="flex flex-wrap items-center justify-center gap-1 text-sm text-muted-foreground">
           Already have an account?{" "}
           <button 
-            onClick={onSwitchToLogin}
+            onClick={() => navigate("/login")}
             className="font-medium text-primary hover:underline underline-offset-4"
           >
             Log in
