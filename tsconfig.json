@@ -5,7 +5,14 @@
       "@/*": ["./src/*"]
     },
     "allowJs": true,
-    "noEmit": true
+    "noEmit": true,
+    "jsx": "react-jsx",
+    "lib": ["ES2020", "DOM", "DOM.Iterable"],
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "strict": false
   },
   "include": ["src"]
 }
