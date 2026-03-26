@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useLocalParticipant, useSessionMessages } from '@livekit/components-react';
-import { Send, Mic, Keyboard, User, LogOut } from 'lucide-react';
+import { Send, Mic, Keyboard, User } from 'lucide-react';
 
 /**
  * Renders the unified session message list: voice transcriptions + typed chat.
@@ -43,36 +43,9 @@ const ChatPanel = ({ agentState, user, onLogout }) => {
   };
 
   return (
-    <div className="flex flex-col h-full bg-background border-r border-border shadow-inner">
-      {/* Header */}
-      <div className="flex items-center justify-between px-5 py-4 border-b border-border bg-white sticky top-0 z-20">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-green-600 flex items-center justify-center shadow-md shadow-green-100">
-            <span className="text-sm font-bold text-white tracking-widest leading-none">AI</span>
-          </div>
-          <div className="flex flex-col">
-            <h2 className="text-sm font-bold text-gray-900 leading-tight">AI Mentor</h2>
-            <StatusDot agentState={agentState} />
-          </div>
-        </div>
-        
-        <div className="flex items-center gap-4">
-           {user && (
-             <div className="hidden sm:flex flex-col items-end mr-1">
-               <span className="text-[11px] font-bold text-gray-900 leading-none">{user.firstName || user.email}</span>
-               <span className="text-[9px] text-green-600 font-bold uppercase tracking-tight mt-0.5">{user.stream || 'SESSION'}</span>
-             </div>
-           )}
-           <button 
-             onClick={onLogout}
-             className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors"
-           >
-             <LogOut size={16} />
-           </button>
-        </div>
-      </div>
-
+    <div className="flex flex-col h-full bg-background border-r border-border shadow-inner relative">
       {/* Messages */}
+
       <div ref={scrollRef} className="flex-1 overflow-y-auto px-6 py-6 space-y-6 scroll-smooth custom-scrollbar">
         {displayMessages.length === 0 && (
           <div className="flex flex-col items-center justify-center h-full text-center space-y-4 py-12">
@@ -97,10 +70,10 @@ const ChatPanel = ({ agentState, user, onLogout }) => {
         {/* Live typing indicator */}
         {agentState === 'thinking' && (
           <div className="flex items-start gap-3">
-            <div className="w-8 h-8 rounded-lg bg-green-50 flex items-center justify-center shrink-0 mt-0.5 border border-green-100">
-              <span className="text-[10px] font-bold text-green-600">AI</span>
+            <div className="w-6 h-6 rounded-lg bg-green-50 flex items-center justify-center shrink-0 mt-0.5 border border-green-100">
+              <span className="text-[8px] font-bold text-green-600">AI</span>
             </div>
-            <div className="bg-slate-50 border border-slate-100 rounded-2xl rounded-tl-sm px-5 py-3 shadow-sm">
+            <div className="bg-slate-50 border border-slate-100 rounded-2xl rounded-tl-sm px-3 py-1.5 shadow-sm">
               <ThinkingDots />
             </div>
           </div>
@@ -127,9 +100,9 @@ const ChatPanel = ({ agentState, user, onLogout }) => {
             <Send className="w-4 h-4" />
           </button>
         </div>
-        <p className="text-[10px] text-gray-400 text-center mt-3 font-medium uppercase tracking-[0.2em] opacity-40">
+        {/* <p className="text-[10px] text-gray-400 text-center mt-3 font-medium uppercase tracking-[0.2em] opacity-40">
            Enterprise Learning AI • Secured Connection
-        </p>
+        </p> */}
       </div>
     </div>
   );
@@ -186,39 +159,12 @@ const MessageBubble = ({ message }) => {
   );
 };
 
-const StatusDot = ({ agentState }) => {
-  const label =
-    agentState === 'speaking'
-      ? 'SPEAKING'
-      : agentState === 'listening'
-        ? 'LISTENING'
-        : agentState === 'thinking'
-          ? 'THINKING'
-          : 'CONNECTING...';
-
-  const color =
-    agentState === 'speaking'
-      ? 'bg-green-500 shadow-green-200'
-      : agentState === 'listening'
-        ? 'bg-green-400 shadow-green-100'
-        : agentState === 'thinking'
-          ? 'bg-green-600 animate-pulse shadow-green-200'
-          : 'bg-slate-400 shadow-slate-100';
-
-  return (
-    <div className="flex items-center gap-1.5 leading-none">
-      <div className={`w-1.5 h-1.5 rounded-full transition-all duration-500 ${color}`} />
-      <span className="text-[10px] font-bold text-gray-400 tracking-[0.1em]">{label}</span>
-    </div>
-  );
-};
-
 const ThinkingDots = () => (
   <div className="flex items-center gap-1.5 py-1">
     {[0, 1, 2].map((i) => (
       <div
         key={i}
-        className="w-1.5 h-1.5 rounded-full bg-green-200/80 animate-bounce"
+        className="w-1 h-1 rounded-full bg-green-200/80 animate-bounce"
         style={{ animationDelay: `${i * 0.15}s`, animationDuration: '0.8s' }}
       />
     ))}

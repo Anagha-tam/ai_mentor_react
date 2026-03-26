@@ -14,6 +14,7 @@ import { AgentSessionProvider } from '../components/agent-session-provider';
 import { useMentorLiveKit } from '../hooks/useMentorLiveKit';
 import ChatPanel from '../components/ChatPanel';
 import AvatarPanel from '../components/AvatarPanel';
+import Header from '../components/Header';
 
 import '@livekit/components-styles';
 
@@ -84,22 +85,27 @@ function MentorSessionLayout({ user, onLogout }) {
   const { agent, agentState, agentVideoTrack, isAgentSpeaking, isUserSpeaking } = useMentorLiveKit();
 
   return (
-    <div className="flex h-full w-full overflow-hidden">
-      {/* Left Panel: Chat Transcript */}
-      <div className="w-[40%] min-w-[360px] border-r border-gray-100 bg-white shadow-sm z-10">
-        <ChatPanel agentState={agentState} user={user} onLogout={onLogout} />
-      </div>
+    <div className="flex flex-col h-full w-full overflow-hidden bg-white">
+      {/* Header spanning full screen width */}
+      <Header agentState={agentState} user={user} onLogout={onLogout} />
 
-      {/* Right Panel: Avatar/Video */}
-      <div className="flex-1 bg-slate-50 relative overflow-hidden">
-        <AvatarPanel
-          agent={agent}
-          videoTrack={agentVideoTrack}
-          isAgentSpeaking={isAgentSpeaking}
-          isUserSpeaking={isUserSpeaking}
-          agentState={agentState}
-          isConnected={isConnected}
-        />
+      <div className="flex flex-1 overflow-hidden">
+        {/* Left Panel: Chat Transcript */}
+        <div className="w-[40%] min-w-[360px] border-r border-gray-100 bg-white shadow-sm z-10">
+          <ChatPanel agentState={agentState} user={user} onLogout={onLogout} />
+        </div>
+
+        {/* Right Panel: Avatar/Video */}
+        <div className="flex-1 bg-slate-50 relative overflow-hidden">
+          <AvatarPanel
+            agent={agent}
+            videoTrack={agentVideoTrack}
+            isAgentSpeaking={isAgentSpeaking}
+            isUserSpeaking={isUserSpeaking}
+            agentState={agentState}
+            isConnected={isConnected}
+          />
+        </div>
       </div>
     </div>
   );
