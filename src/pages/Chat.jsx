@@ -1,99 +1,106 @@
 'use client';
 
+import React, { useMemo, useEffect } from 'react';
 import { 
   useSession, 
-  useAgent,
-  useSessionContext,
-  useSessionMessages, 
+  useConnectionState,
 } from '@livekit/components-react';
-import { TokenSource } from 'livekit-client';
-import { AgentSessionProvider } from '../components/agent-session-provider';
-import { AgentChatTranscript } from '../components/agent-chat-transcript';
+import { ConnectionState, TokenSource } from 'livekit-client';
 import { Bot, User, LogOut } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { AgentSessionProvider } from '../components/agent-session-provider';
 
-const TOKEN_SOURCE = TokenSource.sandboxTokenServer('aimentor-1t8exu');
+// New Components and Hooks
+import { useMentorLiveKit } from '../hooks/useMentorLiveKit';
+import ChatPanel from '../components/ChatPanel';
+import AvatarPanel from '../components/AvatarPanel';
 
-export function Demo() {
-  const { state } = useAgent();
-  const session = useSessionContext();
-  const { messages } = useSessionMessages(session);
+import '@livekit/components-styles';
+
+const getEnv = (key, fallback = '') => {
+  const v = import.meta.env[`VITE_${key}`];
+  return v ?? fallback;
+};
+
+/** New LiveKit room id on every page load (unless `roomName` prop is set). */
+function makeUniqueRoomName(prefix) {
+  const base = (prefix || 'mentor').trim() || 'mentor';
+  if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
+    return `${base}-${crypto.randomUUID()}`;
+  }
+  return `${base}-${Date.now()}-${Math.random().toString(36).slice(2, 11)}`;
+}
+
+export default function ChatPage({ user, onLogout, sandboxId, roomName }) {
+  const resolvedSandboxId = sandboxId || getEnv('SANDBOX_ID', 'aimentor-1t8exu');
+
+  const resolvedRoomName = useMemo(() => roomName || makeUniqueRoomName("mentor"), [roomName]);
+
+
+  const tokenSource = useMemo(
+    () => TokenSource.sandboxTokenServer(resolvedSandboxId),
+    [resolvedSandboxId],
+  );
+
+  const sessionOptions = useMemo(() => ({ roomName: resolvedRoomName }), [resolvedRoomName]);
+
+  const session = useSession(tokenSource, sessionOptions);
+  console.log("session",session)
+
+  useEffect(() => {
+    void session.start();
+    return () => {
+      void session.end();
+    };
+    // Intentionally run once on mount; session object identity changes with connection state.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   return (
-    <AgentChatTranscript
-      agentState={state}
-      messages={messages}
-    />
+    <div className="flex flex-col h-screen bg-slate-50 w-full text-left overflow-hidden">
+      {/* Main Layout Content - Using Split Pane */}
+      <div className="flex-1 flex overflow-hidden">
+        <AgentSessionProvider session={session}>
+          <MentorSessionLayout user={user} onLogout={onLogout} />
+        </AgentSessionProvider>
+      </div>
+
+      {/* Footer Info */}
+      <footer className="w-full bg-white/80 backdrop-blur-md border-t border-gray-200 p-4 z-30">
+        <div className="max-w-4xl mx-auto w-full text-center">
+          <p className="text-xs text-gray-400 font-medium tracking-wide">
+            Powered by <span className="text-green-600 font-bold">LiveKit AI</span>. Voice and Text interactions enabled.
+          </p>
+        </div>
+      </footer>
+    </div>
   );
 }
 
-export default function DemoWrapper({ user, onLogout }) {
-  const session = useSession(TOKEN_SOURCE, {
-    roomName: "mentor-room",     
-    agentName: "my-agent",   
-  });
+function MentorSessionLayout({ user, onLogout }) {
+  const connectionState = useConnectionState();
+  const isConnected = connectionState === ConnectionState.Connected;
+
+  const { agent, agentState, agentVideoTrack, isAgentSpeaking, isUserSpeaking } = useMentorLiveKit();
 
   return (
-    <div className="flex flex-col min-h-screen bg-slate-50 w-full text-left">
-      {/* Top Navigation Bar */}
-      <header className="flex w-full items-center justify-between px-6 py-4 bg-white border-b border-gray-200 shadow-sm sticky top-0 z-10 w-full">
-        <div className="flex items-center gap-3">
-          <div className="bg-green-600 p-2 rounded-lg text-white">
-            <Bot size={24} />
-          </div>
-          <h1 className="text-xl font-bold tracking-tight text-gray-900">AI Mentor Chat</h1>
-        </div>
-        
-        <div className="flex items-center gap-4">
-          <div className="hidden sm:flex items-center gap-2 text-sm text-gray-600 font-medium">
-             <User size={18} />
-             <span>{user?.firstName || user?.email || 'Student'}</span>
-             {user?.stream && (
-               <span className="px-2 py-0.5 bg-green-100 text-green-700 rounded-full text-xs ml-2">
-                 {user?.stream?.toUpperCase()}
-               </span>
-             )}
-          </div>
-          <Button 
-            variant="ghost" 
-            size="icon" 
-            onClick={onLogout}
-            className="text-gray-500 hover:text-red-600 hover:bg-red-50"
-            title="Log out"
-          >
-            <LogOut size={20} />
-          </Button>
-        </div>
-      </header>
+    <div className="flex h-full w-full overflow-hidden">
+      {/* Left Panel: Chat Transcript */}
+      <div className="w-[40%] min-w-[360px] border-r border-gray-100 bg-white shadow-sm z-10">
+        <ChatPanel agentState={agentState} user={user} onLogout={onLogout} />
+      </div>
 
-      {/* Main Layout Content */}
-<div className="flex-1 flex overflow-hidden">
-  {/* Left Section */}
-  <section className="flex-1 flex flex-col bg-white border-r border-gray-200 overflow-y-auto">
-  </section>
-
-  {/* Right Section / Main Chat Area */}
-  <main className="flex-1 flex flex-col overflow-hidden">
-    <div className="flex-1 w-full mx-auto flex flex-col p-4 sm:p-6 overflow-hidden">
-      <AgentSessionProvider session={session}>
-        <Demo />
-      </AgentSessionProvider>
-      
-      {!session.room && (
-        <div className="flex items-center justify-center h-full text-gray-500 text-lg font-medium text-center">
-          Connecting to AI Mentor Session...
-        </div>
-      )}
-    </div>
-  </main>
-</div>
-
-      {/* Footer Info */}
-      <footer className="w-full bg-white border-t border-gray-200 p-4 sticky bottom-0 z-10">
-        <div className="max-w-4xl mx-auto w-full text-center text-xs text-gray-400">
-          AI Mentor is powered by LiveKit. Speak or type to interact.
-        </div>
-      </footer>
+      {/* Right Panel: Avatar/Video */}
+      <div className="flex-1 bg-slate-50 relative overflow-hidden">
+        <AvatarPanel
+          agent={agent}
+          videoTrack={agentVideoTrack}
+          isAgentSpeaking={isAgentSpeaking}
+          isUserSpeaking={isUserSpeaking}
+          agentState={agentState}
+          isConnected={isConnected}
+        />
+      </div>
     </div>
   );
 }
