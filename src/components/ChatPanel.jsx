@@ -115,13 +115,13 @@ const MessageBubble = ({ message }) => {
     <div className={`flex items-start gap-3 ${isUser ? 'flex-row-reverse' : ''}`}>
       {/* Avatar */}
       {!isUser && (
-        <div className="w-8 h-8 rounded-lg bg-green-600 flex items-center justify-center shrink-0 mt-0.5 shadow-md shadow-green-100 border border-green-500/20">
-          <span className="text-[10px] font-bold text-white tracking-tighter">AI</span>
+        <div className="w-5 h-5 rounded-lg bg-green-600 flex items-center justify-center shrink-0 mt-1 shadow-md shadow-green-100 border border-green-500/20">
+          <span className="text-[7px] font-bold text-white tracking-tighter">AI</span>
         </div>
       )}
       {isUser && (
-        <div className="w-8 h-8 rounded-lg bg-slate-900 flex items-center justify-center shrink-0 mt-0.5 shadow-md shadow-slate-200 border border-slate-800">
-          <span className="text-[10px] font-bold text-white">ME</span>
+        <div className="w-5 h-5 rounded-lg bg-slate-900 flex items-center justify-center shrink-0 mt-1 shadow-md shadow-slate-200 border border-slate-800">
+          <span className="text-[7px] font-bold text-white">ME</span>
         </div>
       )}
 

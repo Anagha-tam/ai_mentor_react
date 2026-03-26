@@ -91,7 +91,7 @@ function MentorSessionLayout({ user, onLogout }) {
 
       <div className="flex flex-1 overflow-hidden">
         {/* Left Panel: Chat Transcript */}
-        <div className="w-[40%] min-w-[360px] border-r border-gray-100 bg-white shadow-sm z-10">
+        <div className="w-[40%] min-w-[550px] border-r border-gray-100 bg-white shadow-sm z-10">
           <ChatPanel agentState={agentState} user={user} onLogout={onLogout} />
         </div>
 
