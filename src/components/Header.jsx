@@ -32,11 +32,11 @@ const Header = ({ agentState, user, onLogout }) => {
   return (
     <div className="flex items-center justify-between px-8 py-4 border-b border-gray-200 bg-white w-full sticky top-0 z-50">
       <div className="flex items-center gap-3">
-        <div className="w-10 h-10 rounded-xl bg-green-600 flex items-center justify-center shadow-md shadow-green-100">
+        <div className="w-10 h-10 rounded-xl bg-primary flex items-center justify-center shadow-md shadow-indigo-100">
           <span className="text-sm font-bold text-white tracking-widest leading-none">AI</span>
         </div>
         <div className="flex flex-col text-left">
-          <h2 className="text-sm font-bold text-gray-900 leading-tight">AI Mentor</h2>
+          <h2 className="text-sm font-bold text-gray-900 leading-tight tracking-tight uppercase tracking-[0.1em]">AI Mentor</h2>
           <StatusDot agentState={agentState} />
         </div>
       </div>
@@ -45,7 +45,7 @@ const Header = ({ agentState, user, onLogout }) => {
          {user && (
            <div className="flex flex-col items-end mr-1 text-right">
              <span className="text-[11px] font-bold text-gray-900 leading-none">{user.firstName || user.email}</span>
-             <span className="text-[9px] text-green-600 font-bold uppercase tracking-tight mt-0.5">{user.stream || 'SESSION'}</span>
+             <span className="text-[9px] text-primary font-bold uppercase tracking-tight mt-0.5">{user.stream || 'SESSION'}</span>
            </div>
          )}
          <button 

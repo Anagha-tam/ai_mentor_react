@@ -19,12 +19,12 @@ const VoiceActivityIndicator = ({
   const barColor =
     variant === 'user'
       ? 'bg-slate-900'
-      : 'bg-green-600 shadow-green-100';
+      : 'bg-primary shadow-indigo-100';
 
   const glowColor =
     variant === 'user'
       ? 'shadow-slate-400/30'
-      : 'shadow-green-500/30';
+      : 'shadow-indigo-500/30';
 
   return (
     <div className={cn('flex items-center gap-3 px-4 py-2 bg-white/40 backdrop-blur-md rounded-2xl border border-white/20 shadow-sm transition-all duration-500', className)}>

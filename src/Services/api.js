@@ -26,7 +26,9 @@ const handleResponse = async (response) => {
   }
 
   if (!response.ok) {
-    throw new Error(data.message || data.error || 'API request failed');
+    const errorMsg = data.message || data.error || `API Request failed with status ${response.status}`;
+    console.error(`API Error [${response.status}]:`, errorMsg, data);
+    throw new Error(errorMsg);
   }
   
   return data;
@@ -100,6 +102,30 @@ export const getData = async () => {
   });
   return handleResponse(response);
 };
+/**
+ * Save/Update all academic onboarding data
+ * @param {Object} onboardingData - The collected academic info
+ */
+export const saveOnboardingData = async (onboardingData) => {
+  const response = await fetch(`${BASE_URL}/data/onboarding`, {
+    method: 'POST',
+    headers: getHeaders(true),
+    body: JSON.stringify(onboardingData),
+  });
+  return handleResponse(response);
+};
+
+/**
+ * Get full Identity + Academic info
+ */
+export const getProfileData = async () => {
+  const response = await fetch(`${BASE_URL}/data/profile`, {
+    method: 'GET',
+    headers: getHeaders(true),
+  });
+  return handleResponse(response);
+};
+
 /**
  * Get a sandbox token for testing
  * @param {string} email - Mock email

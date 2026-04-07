@@ -70,8 +70,8 @@ const ChatPanel = ({ agentState, user, onLogout }) => {
         {/* Live typing indicator */}
         {agentState === 'thinking' && (
           <div className="flex items-start gap-3">
-            <div className="w-6 h-6 rounded-lg bg-green-50 flex items-center justify-center shrink-0 mt-0.5 border border-green-100">
-              <span className="text-[8px] font-bold text-green-600">AI</span>
+            <div className="w-6 h-6 rounded-lg bg-indigo-50 flex items-center justify-center shrink-0 mt-0.5 border border-indigo-100">
+              <span className="text-[8px] font-bold text-primary">AI</span>
             </div>
             <div className="bg-slate-50 border border-slate-100 rounded-2xl rounded-tl-sm px-3 py-1.5 shadow-sm">
               <ThinkingDots />
@@ -82,7 +82,7 @@ const ChatPanel = ({ agentState, user, onLogout }) => {
 
       {/* Input */}
       <div className="p-4 bg-white border-t border-border mt-auto">
-        <div className="flex items-center gap-3 bg-slate-50 rounded-2xl px-4 py-2 ring-1 ring-slate-200 focus-within:ring-green-500/30 focus-within:bg-white focus-within:shadow-lg transition-all duration-300 group">
+        <div className="flex items-center gap-3 bg-slate-50 rounded-2xl px-4 py-2 ring-1 ring-slate-200 focus-within:ring-primary/30 focus-within:bg-white focus-within:shadow-lg transition-all duration-300 group">
           <input
             type="text"
             value={inputText}
@@ -95,7 +95,11 @@ const ChatPanel = ({ agentState, user, onLogout }) => {
             type="button"
             onClick={() => void handleSend()}
             disabled={!inputText.trim() || isSending}
-            className="p-2.5 rounded-xl bg-green-600 text-white disabled:opacity-20 disabled:scale-95 disabled:bg-gray-400 hover:bg-green-700 hover:scale-105 active:scale-95 transition-all duration-200 shadow-md shadow-green-100 ring-4 ring-white/10"
+            className={`p-2.5 rounded-xl transition-all duration-300 shadow-md ${
+              !inputText.trim() || isSending 
+                ? 'bg-indigo-50 text-indigo-300 cursor-not-allowed scale-95 shadow-none' 
+                : 'bg-indigo-600 text-white hover:bg-indigo-700 hover:scale-105 active:scale-95 shadow-indigo-200'
+            }`}
           >
             <Send className="w-4 h-4" />
           </button>
@@ -115,7 +119,7 @@ const MessageBubble = ({ message }) => {
     <div className={`flex items-start gap-3 ${isUser ? 'flex-row-reverse' : ''}`}>
       {/* Avatar */}
       {!isUser && (
-        <div className="w-5 h-5 rounded-lg bg-green-600 flex items-center justify-center shrink-0 mt-1 shadow-md shadow-green-100 border border-green-500/20">
+        <div className="w-5 h-5 rounded-lg bg-primary flex items-center justify-center shrink-0 mt-1 shadow-md shadow-indigo-100 border border-indigo-500/20">
           <span className="text-[7px] font-bold text-white tracking-tighter">AI</span>
         </div>
       )}
@@ -129,7 +133,7 @@ const MessageBubble = ({ message }) => {
       <div
         className={`max-w-[85%] px-5 py-3.5 text-sm leading-relaxed shadow-sm transition-all duration-300 ${
           isUser
-            ? 'bg-green-600 text-white rounded-2xl rounded-tr-sm font-medium border border-green-500 shadow-green-100/50'
+            ? 'bg-primary text-white rounded-2xl rounded-tr-sm font-medium border border-indigo-500 shadow-indigo-100/50'
             : 'bg-white border border-slate-100 text-gray-800 rounded-2xl rounded-tl-sm shadow-slate-200/40'
         }`}
       >
@@ -164,7 +168,7 @@ const ThinkingDots = () => (
     {[0, 1, 2].map((i) => (
       <div
         key={i}
-        className="w-1 h-1 rounded-full bg-green-200/80 animate-bounce"
+        className="w-1 h-1 rounded-full bg-indigo-200/80 animate-bounce"
         style={{ animationDelay: `${i * 0.15}s`, animationDuration: '0.8s' }}
       />
     ))}
