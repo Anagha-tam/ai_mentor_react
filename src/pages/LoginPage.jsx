@@ -194,8 +194,7 @@ export default function LoginPage({ onSwitchToSignUp, onLoginSuccess }) {
             /> */}
             <h2 className="text-5xl font-black text-slate-900 mb-6 tracking-tighter leading-none">AI Mentor</h2>
             <p className="text-xl text-slate-500 font-medium leading-relaxed tracking-tight">
-              A minimalist, powerful intelligence for your personal and professional growth.
-            </p>
+                  Your personalized guide to crack entrance exams with confidence.            </p>
             <div className="mt-12 flex gap-2 justify-center">
                 <div className="w-2 h-2 rounded-full bg-indigo-600"></div>
                 <div className="w-2 h-2 rounded-full bg-slate-200"></div>

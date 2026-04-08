@@ -1,5 +1,5 @@
 import React from 'react';
-import { LogOut } from 'lucide-react';
+import { LogOut, PanelLeft } from 'lucide-react';
 
 const StatusDot = ({ agentState }) => {
   const label =
@@ -28,18 +28,22 @@ const StatusDot = ({ agentState }) => {
   );
 };
 
-const Header = ({ agentState, user, onLogout }) => {
+const Header = ({ agentState, user, onLogout, onToggleSidebar }) => {
   return (
     <div className="flex items-center justify-between px-8 py-4 border-b border-gray-200 bg-white w-full sticky top-0 z-50">
-      <div className="flex items-center gap-3">
-        <div className="w-10 h-10 rounded-xl bg-primary flex items-center justify-center shadow-md shadow-indigo-100">
+      <button 
+        onClick={onToggleSidebar}
+        className="flex items-center gap-3 hover:bg-slate-50 p-1.5 -ml-1.5 rounded-xl transition-colors cursor-pointer text-left"
+        title="Toggle Sidebar"
+      >
+        <div className="w-10 h-10 rounded-xl bg-primary flex items-center justify-center shadow-md shadow-indigo-100 shrink-0">
           <span className="text-sm font-bold text-white tracking-widest leading-none">AI</span>
         </div>
         <div className="flex flex-col text-left">
           <h2 className="text-sm font-bold text-gray-900 leading-tight tracking-tight uppercase tracking-[0.1em]">AI Mentor</h2>
           <StatusDot agentState={agentState} />
         </div>
-      </div>
+      </button>
       
       <div className="flex items-center gap-4">
          {user && (

@@ -81,7 +81,7 @@ const ChatPanel = ({ agentState, user, onLogout }) => {
       </div>
 
       {/* Input */}
-      <div className="p-4 bg-white border-t border-border mt-auto">
+      <div className="p-4 bg-white mt-auto">
         <div className="flex items-center gap-3 bg-slate-50 rounded-2xl px-4 py-2 ring-1 ring-slate-200 focus-within:ring-primary/30 focus-within:bg-white focus-within:shadow-lg transition-all duration-300 group">
           <input
             type="text"

@@ -284,13 +284,11 @@ export default function AcademicInfoPage({ user, onProfileComplete }) {
         />
         
         <div className="relative z-10 max-w-md text-center">
-            <div className="backdrop-blur-xl bg-white/10 rounded-[2.5rem] p-8 border border-white/20 shadow-2xl mb-12">
-               <img 
-                 src={Illustration} 
-                 alt="Academic Illustration" 
-                 className="w-full max-w-[320px] h-auto mx-auto drop-shadow-3xl animate-floating" 
-               />
-            </div>
+            <img 
+              src={Illustration} 
+              alt="Academic Illustration" 
+              className="w-full max-w-[320px] h-auto mx-auto mb-12 drop-shadow-3xl animate-floating" 
+            />
             <h2 className="text-5xl font-black text-slate-900 mb-6 tracking-tighter leading-none">Your Journey</h2>
             <p className="text-xl text-slate-500 font-medium leading-relaxed tracking-tight">
               Personalizing your academic path with artificial intelligence.

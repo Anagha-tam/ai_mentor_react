@@ -6,7 +6,7 @@ import {
   useConnectionState,
 } from '@livekit/components-react';
 import { ConnectionState, TokenSource } from 'livekit-client';
-import { Bot, User, LogOut } from 'lucide-react';
+import { Bot, User, LogOut, LayoutDashboard } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { AgentSessionProvider } from '../components/agent-session-provider';
 
@@ -15,6 +15,7 @@ import { useMentorLiveKit } from '../hooks/useMentorLiveKit';
 import ChatPanel from '../components/ChatPanel';
 import AvatarPanel from '../components/AvatarPanel';
 import Header from '../components/Header';
+import Sidebar from '../components/Sidebar';
 
 import '@livekit/components-styles';
 
@@ -67,7 +68,7 @@ export default function ChatPage({ user, onLogout, sandboxId, roomName }) {
       </div>
 
       {/* Footer Info */}
-      <footer className="w-full bg-white/80 backdrop-blur-md border-t border-gray-200 p-4 z-30">
+      <footer className="w-full bg-white/80 backdrop-blur-md  p-4 z-30">
         <div className="max-w-4xl mx-auto w-full text-center">
           <p className="text-xs text-gray-400 font-medium tracking-wide">
             Powered by <span className="text-green-600 font-bold">LiveKit AI</span>. Voice and Text interactions enabled.
@@ -83,29 +84,50 @@ function MentorSessionLayout({ user, onLogout }) {
   const isConnected = connectionState === ConnectionState.Connected;
 
   const { agent, agentState, agentVideoTrack, isAgentSpeaking, isUserSpeaking } = useMentorLiveKit();
+  const [isSidebarOpen, setIsSidebarOpen] = React.useState(false);
+  const [currentView, setCurrentView] = React.useState('chat');
 
   return (
     <div className="flex flex-col h-full w-full overflow-hidden bg-white">
       {/* Header spanning full screen width */}
-      <Header agentState={agentState} user={user} onLogout={onLogout} />
+      <Header agentState={agentState} user={user} onLogout={onLogout} onToggleSidebar={() => setIsSidebarOpen(!isSidebarOpen)} />
 
       <div className="flex flex-1 overflow-hidden">
-        {/* Left Panel: Chat Transcript */}
-        <div className="w-[40%] min-w-[550px] border-r border-gray-100 bg-white shadow-sm z-10">
-          <ChatPanel agentState={agentState} user={user} onLogout={onLogout} />
-        </div>
+        {/* Sidebar */}
+        <Sidebar 
+          isOpen={isSidebarOpen} 
+          onNavigate={setCurrentView} 
+          currentView={currentView} 
+        />
 
-        {/* Right Panel: Avatar/Video */}
-        <div className="flex-1 bg-slate-50 relative overflow-hidden">
-          <AvatarPanel
-            agent={agent}
-            videoTrack={agentVideoTrack}
-            isAgentSpeaking={isAgentSpeaking}
-            isUserSpeaking={isUserSpeaking}
-            agentState={agentState}
-            isConnected={isConnected}
-          />
-        </div>
+        {currentView === 'chat' && (
+          <>
+            {/* Left Panel: Chat Transcript */}
+            <div className="w-[40%] min-w-[550px] border-r border-gray-100 bg-white shadow-sm z-10">
+              <ChatPanel agentState={agentState} user={user} onLogout={onLogout} />
+            </div>
+
+            {/* Right Panel: Avatar/Video */}
+            <div className="flex-1 bg-slate-50 relative overflow-hidden">
+              <AvatarPanel
+                agent={agent}
+                videoTrack={agentVideoTrack}
+                isAgentSpeaking={isAgentSpeaking}
+                isUserSpeaking={isUserSpeaking}
+                agentState={agentState}
+                isConnected={isConnected}
+              />
+            </div>
+          </>
+        )}
+
+        {currentView === 'dashboard' && (
+          <div className="flex-1 flex flex-col p-12 lg:p-20 bg-slate-50 overflow-y-auto">
+            <div className="w-full">
+              
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

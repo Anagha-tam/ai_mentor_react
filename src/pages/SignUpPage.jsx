@@ -202,7 +202,7 @@ export default function SignUpPage({ onSwitchToLogin }) {
             /> */}
             <h2 className="text-5xl font-black text-slate-900 mb-6 tracking-tighter leading-none">Join AI Mentor</h2>
             <p className="text-xl text-slate-500 font-medium leading-relaxed tracking-tight">
-              Empowering your journey with next-generation artificial intelligence.
+             Crack Your Entrance Exams with Your Personal AI Mentor.
             </p>
             <div className="mt-12 flex gap-2 justify-center">
                 <div className="w-2 h-2 rounded-full bg-slate-100"></div>
