@@ -76,19 +76,15 @@ const AvatarPanel = ({
 
 const AvatarWaiting = () => (
   <div className="flex flex-col items-center gap-4 text-center px-6">
-    <div className="w-20 h-20 rounded-full bg-primary/10 flex items-center justify-center">
-      <div className="w-10 h-10 border-3 border-primary border-t-transparent rounded-full animate-spin" />
-    </div>
-    <p className="text-sm text-muted-foreground">Waiting for avatar to join...</p>
+    <div className="w-10 h-10 border-3 border-transparent border-t-primary rounded-full animate-spin" />
+    <p className="text-sm text-muted-foreground">waiting for avatar to join...</p>
   </div>
 );
 
 const AvatarConnecting = () => (
   <div className="flex flex-col items-center gap-4 text-center px-6">
-    <div className="w-20 h-20 rounded-full bg-muted flex items-center justify-center">
-      <div className="w-10 h-10 border-3 border-muted-foreground/30 border-t-primary rounded-full animate-spin" />
-    </div>
-    <p className="text-sm text-muted-foreground">Connecting...</p>
+    <div className="w-10 h-10 border-3 border-transparent border-t-primary rounded-full animate-spin" />
+    <p className="text-sm text-muted-foreground">connecting...</p>
   </div>
 );
 

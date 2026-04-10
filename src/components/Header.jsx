@@ -4,12 +4,12 @@ import { LogOut, PanelLeft } from 'lucide-react';
 const StatusDot = ({ agentState }) => {
   const label =
     agentState === 'speaking'
-      ? 'SPEAKING'
+      ? 'speaking'
       : agentState === 'listening'
-        ? 'LISTENING'
+        ? 'listening'
         : agentState === 'thinking'
-          ? 'THINKING'
-          : 'CONNECTING...';
+          ? 'thinking'
+          : 'connecting...';
 
   const color =
     agentState === 'speaking'
@@ -23,7 +23,7 @@ const StatusDot = ({ agentState }) => {
   return (
     <div className="flex items-center gap-1.5 leading-none">
       <div className={`w-1.5 h-1.5 rounded-full transition-all duration-500 ${color}`} />
-      <span className="text-[10px] font-bold text-gray-400 tracking-[0.1em]">{label}</span>
+      <span className="text-[10px] font-bold text-gray-400 tracking-[0.05em]">{label}</span>
     </div>
   );
 };
