@@ -4,6 +4,9 @@ import React, { useMemo, useEffect } from 'react';
 import { 
   useSession, 
   useConnectionState,
+  StartAudio,
+  SessionProvider,
+  RoomAudioRenderer,
 } from '@livekit/components-react';
 import { ConnectionState, TokenSource } from 'livekit-client';
 import { Bot, User, LogOut, LayoutDashboard, Zap, Beaker, Calculator, Dna } from 'lucide-react';
@@ -35,6 +38,7 @@ function makeUniqueRoomName(prefix) {
 
 export default function ChatPage({ user, onLogout, sandboxId, roomName }) {
   const resolvedSandboxId = sandboxId || getEnv('SANDBOX_ID', 'aimentor-1t8exu');
+  const resolvedAgentName = getEnv('AGENT_NAME', 'ai-mentor-node');
 
   const resolvedRoomName = useMemo(() => roomName || makeUniqueRoomName("mentor"), [roomName]);
 
@@ -44,7 +48,10 @@ export default function ChatPage({ user, onLogout, sandboxId, roomName }) {
     [resolvedSandboxId],
   );
 
-  const sessionOptions = useMemo(() => ({ roomName: resolvedRoomName }), [resolvedRoomName]);
+  const sessionOptions = useMemo(() => ({ 
+    roomName: resolvedRoomName, 
+    agentName: resolvedAgentName 
+  }), [resolvedRoomName, resolvedAgentName]);
 
   const session = useSession(tokenSource, sessionOptions);
   console.log("session",session)
@@ -62,9 +69,11 @@ export default function ChatPage({ user, onLogout, sandboxId, roomName }) {
     <div className="flex flex-col h-screen bg-slate-50 w-full text-left overflow-hidden">
       {/* Main Layout Content - Using Split Pane */}
       <div className="flex-1 flex overflow-hidden">
-        <AgentSessionProvider session={session}>
+        <SessionProvider session={session}>
+          <RoomAudioRenderer room={session?.room} />
+          <StartAudio label="Enable Audio" />
           <MentorSessionLayout user={user} onLogout={onLogout} />
-        </AgentSessionProvider>
+        </SessionProvider>
       </div>
 
       {/* Footer Info */}
