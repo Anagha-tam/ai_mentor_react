@@ -6,7 +6,7 @@ import {
   useConnectionState,
 } from '@livekit/components-react';
 import { ConnectionState, TokenSource } from 'livekit-client';
-import { Bot, User, LogOut, LayoutDashboard } from 'lucide-react';
+import { Bot, User, LogOut, LayoutDashboard, Zap, Beaker, Calculator, Dna } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { AgentSessionProvider } from '../components/agent-session-provider';
 
@@ -122,9 +122,58 @@ function MentorSessionLayout({ user, onLogout }) {
         )}
 
         {currentView === 'dashboard' && (
-          <div className="flex-1 flex flex-col p-12 lg:p-20 bg-slate-50 overflow-y-auto">
-            <div className="w-full">
-              
+          <div className="flex-1 bg-slate-50 overflow-y-auto">
+            <div className="max-w-5xl px-6 py-8">
+              {/* Welcome Card */}
+              <h1 className="text-2xl md:text-3xl font-bold text-slate-900">
+                Welcome back,{" "}
+                <span className="text-indigo-600">
+                  {user?.firstName || 'Anagha'}
+                </span>
+              </h1>
+
+              <p className="mt-2 text-base text-slate-500">
+                Your{" "}
+                <span className="text-indigo-600 font-semibold">
+                  {user?.entranceExam || 'JEE'}
+                </span>{" "}
+                preparation is progressing steadily.
+              </p>
+            </div>
+
+            {/* Subject Grid */}
+            <div className="max-w-7xl px-6 pb-20">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                {[
+                  { name: 'Physics', icon: Zap, color: 'text-amber-500', bg: 'bg-amber-50', score: user?.latestscore?.physics || '85', progress: 75 },
+                  { name: 'Chemistry', icon: Beaker, color: 'text-emerald-500', bg: 'bg-emerald-50', score: user?.latestscore?.chemistry || '78', progress: 62 },
+                  { name: 'Maths', icon: Calculator, color: 'text-blue-500', bg: 'bg-blue-50', score: user?.latestscore?.maths || '92', progress: 88 },
+                  { name: 'Biology', icon: Dna, color: 'text-rose-500', bg: 'bg-rose-50', score: user?.latestscore?.biology || '88', progress: 70  },
+                ].map((sub) => (
+                  <div key={sub.name} className="bg-white p-5 rounded-3xl border border-slate-100 shadow-sm hover:shadow-md transition-all group">
+                    <div className="flex items-center justify-between mb-4">
+                      <div className={`p-2.5 rounded-2xl ${sub.bg} ${sub.color}`}>
+                        <sub.icon size={20} />
+                      </div>
+                      <div className="text-right">
+                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-tighter">Latest Test Marks</p>
+                        <p className="text-lg font-black text-slate-900 leading-none">{sub.score}</p>
+                      </div>
+                    </div>
+                    
+                    <h3 className="text-sm font-bold text-slate-800 mb-4">{sub.name}</h3>
+                    
+                    <div className="space-y-3">
+                      <div className="w-full h-1.5 bg-slate-50 rounded-full overflow-hidden">
+                        <div 
+                          className={`h-full ${sub.bg.replace('bg-', 'bg-').replace('50', '500')} rounded-full transition-all duration-1000`} 
+                          style={{ width: `${sub.progress}%` }}
+                        />
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
             </div>
           </div>
         )}
