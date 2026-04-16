@@ -67,7 +67,7 @@ const AvatarWaiting = () => (
     <div className="w-20 h-20 rounded-full bg-primary/10 flex items-center justify-center">
       <div className="w-10 h-10 border-3 border-primary border-t-transparent rounded-full animate-spin" />
     </div>
-    <p className="text-sm text-muted-foreground">Waiting for avatar to join...</p>
+    <p className="text-sm text-muted-foreground">Your AI mentor is preparing…</p>
   </div>
 );
 

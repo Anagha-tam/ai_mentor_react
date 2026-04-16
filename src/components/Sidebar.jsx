@@ -1,48 +1,103 @@
-import React from 'react';
-import { PanelLeftClose, Edit3, Search, LayoutDashboard } from 'lucide-react';
+import { LayoutDashboard, Settings, HelpCircle, Bot, Map } from 'lucide-react';
 
-const TooltipButton = ({ icon: Icon, label, onClick, isActive, className }) => (
-  <button 
+const AgentStatus = ({ agentState }) => {
+  const label =
+    agentState === 'speaking' ? 'Speaking'
+    : agentState === 'listening' ? 'Listening'
+    : agentState === 'thinking' ? 'Thinking...'
+    : 'Connecting...';
+
+  const color =
+    agentState === 'speaking' ? 'bg-green-500'
+    : agentState === 'listening' ? 'bg-green-400'
+    : agentState === 'thinking' ? 'bg-green-500 animate-pulse'
+    : 'bg-brand-navy/30';
+
+  return (
+    <div className="flex items-center gap-1.5 mt-1.5">
+      <div className={`w-1.5 h-1.5 rounded-full ${color} transition-colors duration-500`} />
+      <span className="text-[10px] font-semibold text-brand-navy/40 tracking-wide mt-[1px]">{label}</span>
+    </div>
+  );
+};
+
+const NavButton = ({ icon: Icon, label, onClick, isActive }) => (
+  <button
     onClick={onClick}
-    className={`group relative w-10 h-10 rounded-xl flex items-center justify-center transition-colors ${
-      isActive 
-        ? 'bg-indigo-50 text-indigo-600' 
-        : 'text-slate-400 hover:text-indigo-600 hover:bg-slate-50'
-    } ${className || ''}`}
+    className={`w-full flex flex-row items-center gap-3 px-4 py-2.5 rounded-xl mx-2 transition-all ${
+      isActive
+        ? 'bg-brand-orange/10 text-brand-orange'
+        : 'text-brand-navy/50 hover:text-brand-navy hover:bg-brand-navy/5'
+    }`}
+    style={{ width: 'calc(100% - 16px)' }}
   >
-    <Icon size={20} />
-    <span className="absolute left-full ml-3 px-3 py-1.5 bg-slate-900 text-white text-[11px] font-bold tracking-wide rounded-[8px] opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all whitespace-nowrap z-50 shadow-md">
-      {label}
-    </span>
+    <div className={`p-1.5 rounded-lg ${isActive ? 'bg-brand-orange/15 text-brand-orange' : 'text-brand-navy/40'}`}>
+      <Icon size={16} className="shrink-0" />
+    </div>
+    <span className="text-[13px] font-semibold">{label}</span>
   </button>
 );
 
-const Sidebar = ({ isOpen, onClose, onNavigate, currentView }) => {
+const Sidebar = ({ isOpen, onNavigate, currentView, agentState }) => {
   return (
-    <div 
-      className={`bg-white border-r border-slate-100 transition-all duration-300 ease-in-out flex flex-col items-center py-4 gap-6 shrink-0 z-20 ${
-        isOpen ? 'w-16 opacity-100' : 'w-0 opacity-0 overflow-hidden'
+    <div
+      className={`bg-white border-r border-brand-navy/10 transition-all duration-300 ease-in-out flex flex-col shrink-0 z-20 overflow-hidden h-full ${
+        isOpen ? 'w-52 opacity-100' : 'w-0 opacity-0'
       }`}
-      style={{
-        boxShadow: isOpen ? '2px 0 10px rgba(0,0,0,0.02)' : 'none'
-      }}
+      style={{ boxShadow: isOpen ? '2px 0 16px rgba(26,26,46,0.06)' : 'none' }}
     >
-      {/* Top toggle button */}
+      {/* Logo / App Header */}
+      <div className="px-4 pt-6 pb-4">
+        <div className="flex items-start gap-3">
+          <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-brand-orange to-brand-orange/80 flex items-center justify-center shrink-0 shadow-lg shadow-brand-orange/20 mt-0.5">
+            <Bot size={18} className="text-white" />
+          </div>
+          <div className="min-w-0 flex flex-col justify-center">
+            <h1 className="text-[16px] font-black text-brand-navy tracking-tight leading-tight">
+              AI<span className="text-brand-orange"> Mentor</span>
+            </h1>
+            <AgentStatus agentState={agentState} />
+          </div>
+        </div>
+      </div>
 
-      {/* Feature Icons */}
-      <TooltipButton 
-        icon={LayoutDashboard} 
-        label="Dashboard" 
-        onClick={() => onNavigate('dashboard')}
-        isActive={currentView === 'dashboard'}
-      />
-      <TooltipButton 
-        icon={Edit3} 
-        label="New chat" 
-        onClick={() => onNavigate('chat')}
-        isActive={currentView === 'chat'}
-      />
-      
+      {/* Nav Buttons */}
+      <div className="flex flex-col w-full flex-1 pt-3 gap-0.5">
+        <NavButton
+          icon={LayoutDashboard}
+          label="Dashboard"
+          onClick={() => onNavigate('dashboard')}
+          isActive={currentView === 'dashboard'}
+        />
+        <NavButton
+          icon={Bot}
+          label="AI Mentor"
+          onClick={() => onNavigate('chat')}
+          isActive={currentView === 'chat'}
+        />
+        <NavButton
+          icon={Map}
+          label="Roadmap"
+          onClick={() => onNavigate('study-plan')}
+          isActive={currentView === 'study-plan'}
+        />
+      </div>
+
+      {/* Bottom Buttons */}
+      <div className="flex flex-col w-full mb-3 gap-0.5">
+        <NavButton
+          icon={Settings}
+          label="Settings"
+          onClick={() => {}}
+          isActive={false}
+        />
+        <NavButton
+          icon={HelpCircle}
+          label="Support"
+          onClick={() => {}}
+          isActive={false}
+        />
+      </div>
     </div>
   );
 };

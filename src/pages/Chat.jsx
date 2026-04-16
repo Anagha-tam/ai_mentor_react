@@ -1,8 +1,8 @@
 'use client';
 
 import React, { useMemo, useEffect } from 'react';
-import { 
-  useSession, 
+import {
+  useSession,
   useConnectionState,
   StartAudio,
   SessionProvider,
@@ -13,12 +13,11 @@ import { Bot, User, LogOut, LayoutDashboard, Zap, Beaker, Calculator, Dna, Clock
 import { Button } from '@/components/ui/button';
 import { AgentSessionProvider } from '../components/agent-session-provider';
 
-// New Components and Hooks
 import { useMentorLiveKit } from '../hooks/useMentorLiveKit';
 import ChatPanel from '../components/ChatPanel';
 import AvatarPanel from '../components/AvatarPanel';
-import Header from '../components/Header';
 import Sidebar from '../components/Sidebar';
+import Header from '../components/Header';
 
 import '@livekit/components-styles';
 
@@ -27,7 +26,6 @@ const getEnv = (key, fallback = '') => {
   return v ?? fallback;
 };
 
-/** New LiveKit room id on every page load (unless `roomName` prop is set). */
 function makeUniqueRoomName(prefix) {
   const base = (prefix || 'mentor').trim() || 'mentor';
   if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
@@ -42,32 +40,29 @@ export default function ChatPage({ user, onLogout, sandboxId, roomName }) {
 
   const resolvedRoomName = useMemo(() => roomName || makeUniqueRoomName("mentor"), [roomName]);
 
-
   const tokenSource = useMemo(
     () => TokenSource.sandboxTokenServer(resolvedSandboxId),
     [resolvedSandboxId],
   );
 
-  const sessionOptions = useMemo(() => ({ 
-    roomName: resolvedRoomName, 
-    agentName: resolvedAgentName 
+  const sessionOptions = useMemo(() => ({
+    roomName: resolvedRoomName,
+    agentName: resolvedAgentName
   }), [resolvedRoomName, resolvedAgentName]);
 
   const session = useSession(tokenSource, sessionOptions);
-  console.log("session",session)
+  console.log("session", session);
 
   useEffect(() => {
     void session.start();
     return () => {
       void session.end();
     };
-    // Intentionally run once on mount; session object identity changes with connection state.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   return (
-    <div className="flex flex-col h-screen bg-slate-50 w-full text-left overflow-hidden">
-      {/* Main Layout Content - Using Split Pane */}
+    <div className="flex flex-col h-screen bg-background w-full text-left overflow-hidden">
       <div className="flex-1 flex overflow-hidden">
         <SessionProvider session={session}>
           <RoomAudioRenderer room={session?.room} />
@@ -77,12 +72,12 @@ export default function ChatPage({ user, onLogout, sandboxId, roomName }) {
       </div>
 
       {/* Footer Info */}
-      <footer className="w-full bg-white/80 backdrop-blur-md  p-4 z-30">
-        <div className="max-w-4xl mx-auto w-full text-center">
-          <p className="text-xs text-gray-400 font-medium tracking-wide">
+      <footer className="w-full bg-background/80 backdrop-blur-md p-1 z-20">
+        {/* <div className="max-w-2xl mx-auto w-full text-center">
+          <p className="text-xs text-brand-navy/40 font-medium tracking-wide">
             Powered by <span className="text-green-600 font-bold">LiveKit AI</span>. Voice and Text interactions enabled.
           </p>
-        </div>
+        </div> */}
       </footer>
     </div>
   );
@@ -93,13 +88,12 @@ function MentorSessionLayout({ user, onLogout }) {
   const isConnected = connectionState === ConnectionState.Connected;
 
   const { agent, agentState, agentVideoTrack, isAgentSpeaking, isUserSpeaking } = useMentorLiveKit();
-  const [isSidebarOpen, setIsSidebarOpen] = React.useState(false);
+  const [isSidebarOpen] = React.useState(true);
   const [currentView, setCurrentView] = React.useState('chat');
 
-  // Study Tracker State
   const [isStudying, setIsStudying] = React.useState(false);
-  const [todaySeconds, setTodaySeconds] = React.useState(5.2 * 3600); // Initial 5.2 hrs in seconds
-  
+  const [todaySeconds, setTodaySeconds] = React.useState(5.2 * 3600);
+
   React.useEffect(() => {
     let interval;
     if (isStudying) {
@@ -113,134 +107,144 @@ function MentorSessionLayout({ user, onLogout }) {
   const formatHours = (seconds) => (seconds / 3600).toFixed(1);
 
   return (
-    <div className="flex flex-col h-full w-full overflow-hidden bg-white">
-      {/* Header spanning full screen width */}
-      <Header agentState={agentState} user={user} onLogout={onLogout} onToggleSidebar={() => setIsSidebarOpen(!isSidebarOpen)} />
-
-      <div className="flex flex-1 overflow-hidden">
-        {/* Sidebar */}
-        <Sidebar 
-          isOpen={isSidebarOpen} 
-          onNavigate={setCurrentView} 
-          currentView={currentView} 
+    <div className="flex h-full w-full overflow-hidden bg-background p-2 gap-2">
+      {/* Sidebar: flush with edges on 2/3 sides */}
+      <div className="-mt-2 -ml-2 -mb-2 h-[calc(100%+16px)]">
+        <Sidebar
+          isOpen={isSidebarOpen}
+          onNavigate={setCurrentView}
+          currentView={currentView}
+          agentState={agentState}
+          user={user}
+          onLogout={onLogout}
         />
+      </div>
 
-        {currentView === 'chat' && (
-          <>
-            {/* Left Panel: Chat Transcript */}
-            <div className="w-[40%] min-w-[550px] border-r border-gray-100 bg-white shadow-sm z-10">
-              <ChatPanel agentState={agentState} user={user} onLogout={onLogout} />
-            </div>
+      {/* Main area: header + content */}
+      <div className="flex flex-col flex-1 overflow-hidden h-full">
+        <div className="-mt-2 -mr-2">
+          <Header user={user} onLogout={onLogout} agentState={agentState} />
+        </div>
+        <div className="flex-1 overflow-hidden h-full flex flex-col pt-2">
+            {currentView === 'chat' && (
+              <div className="flex-1 flex overflow-hidden h-full gap-2 px-2 pb-2">
+                {/* Left Panel: Chat Transcript */}
+                <div className="w-[60%] min-w-[400px] bg-white shadow-sm z-10 rounded-2xl overflow-hidden border border-brand-navy/10">
+                  <ChatPanel agentState={agentState} user={user} onLogout={onLogout} />
+                </div>
 
-            {/* Right Panel: Avatar/Video */}
-            <div className="flex-1 bg-slate-50 relative overflow-hidden">
-              <AvatarPanel
-                agent={agent}
-                videoTrack={agentVideoTrack}
-                isAgentSpeaking={isAgentSpeaking}
-                isUserSpeaking={isUserSpeaking}
-                agentState={agentState}
-                isConnected={isConnected}
-              />
-            </div>
-          </>
-        )}
+                {/* Right Panel: Avatar/Video & Planner */}
+                <div className="flex-1 overflow-hidden h-full">
+                  <AvatarPanel
+                    agent={agent}
+                    videoTrack={agentVideoTrack}
+                    isAgentSpeaking={isAgentSpeaking}
+                    isUserSpeaking={isUserSpeaking}
+                    agentState={agentState}
+                    isConnected={isConnected}
+                  />
+                </div>
+              </div>
+            )}
 
         {currentView === 'dashboard' && (
-          <div className="flex-1 bg-slate-50 overflow-y-auto">
-             <div className="w-full h-full px-4 py-4 overflow-hidden">
-  {/* MAIN CONTAINER BOX */}
-  <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-5 h-full flex flex-col overflow-hidden">
+          <div className="flex-1 bg-background overflow-y-auto custom-scrollbar p-2">
+            <div className="w-full h-full overflow-hidden">
+              {/* MAIN CONTAINER BOX */}
+              <div className="bg-white rounded-2xl border border-brand-navy/10 shadow-sm p-6 h-full flex flex-col overflow-hidden">
 
-    {/* Welcome Section */}
-    <div className="mb-4">
-      <h1 className="text-xl md:text-2xl font-bold text-slate-900">
-        Welcome back,{" "}
-        <span className="text-indigo-600">
-          {user?.firstName || 'Anagha'}
-        </span>
-      </h1>
+                {/* Welcome Section */}
+                <div className="mb-4">
+                  <h1 className="text-xl md:text-2xl font-bold text-brand-navy font-heading">
+                    Welcome back,{" "}
+                    <span className="text-brand-orange">
+                      {user?.firstName || 'Anagha'}
+                    </span>
+                  </h1>
 
-      <p className="mt-1 text-sm text-slate-500">
-        Your{" "}
-        <span className="text-indigo-600 font-semibold">
-          {user?.entranceExam || 'JEE'}
-        </span>{" "}
-        preparation is progressing steadily.
-      </p>
-    </div>
+                  <p className="mt-1 text-sm text-brand-navy/60">
+                    Your{" "}
+                    <span className="text-brand-orange font-semibold">
+                      {user?.entranceExam || 'JEE'}
+                    </span>{" "}
+                    preparation is progressing steadily.
+                  </p>
+                </div>
 
-    {/* Divider */}
-    <div className="border-t border-slate-100 my-4"></div>
+                {/* Divider */}
+                <div className="border-t border-brand-navy/10 my-4"></div>
 
-    {/* Study Tracker Section */}
-    <div className="mb-6">
-      <div className="flex items-center justify-between mb-4">
-        <div className="flex items-center gap-2">
-          <div className="p-1.5 bg-indigo-50 rounded-lg text-indigo-600">
-            <Clock size={18} />
-          </div>
-          <h2 className="text-base font-bold text-slate-900">Study Time Tracker</h2>
-        </div>
-        <Button 
-          onClick={() => setIsStudying(!isStudying)}
-          variant={isStudying ? "destructive" : "default"}
-          size="sm"
-          className={`rounded-xl px-4 py-1.5 font-bold flex items-center gap-2 transition-all shadow-md ${
-            isStudying 
-              ? 'bg-rose-500 hover:bg-rose-600 shadow-rose-200' 
-              : 'bg-indigo-600 hover:bg-indigo-700 shadow-indigo-200'
-          }`}
-        >
-          {isStudying ? <Pause size={14} /> : <Play size={14} />}
-          <span className="text-xs">{isStudying ? "Stop Session" : "Start Study Session"}</span>
-        </Button>
-      </div>
+                {/* Study Tracker Section */}
+                <div className="mb-6">
+                  <div className="flex items-center justify-between mb-4">
+                    <div className="flex items-center gap-2">
+                      <div className="p-1.5 bg-brand-orange/10 rounded-lg text-brand-orange">
+                        <Clock size={18} />
+                      </div>
+                      <h2 className="text-base font-bold text-brand-navy font-heading">Study Time Tracker</h2>
+                    </div>
+                    <Button
+                      onClick={() => setIsStudying(!isStudying)}
+                      variant={isStudying ? "destructive" : "default"}
+                      size="sm"
+                      className={`rounded-xl px-4 py-1.5 font-bold flex items-center gap-2 transition-all shadow-md ${
+                        isStudying
+                          ? 'bg-rose-500 hover:bg-rose-600 shadow-rose-200'
+                          : 'bg-brand-orange hover:bg-brand-orange/90 shadow-brand-orange/20'
+                      }`}
+                    >
+                      {isStudying ? <Pause size={14} /> : <Play size={14} />}
+                      <span className="text-xs">{isStudying ? "Stop Session" : "Start Study Session"}</span>
+                    </Button>
+                  </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-        <div className="bg-slate-50 border border-slate-100 p-4 rounded-xl flex items-center justify-between group hover:shadow-md transition-all">
-          <div>
-            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Total Today</p>
-            <h3 className="text-2xl font-black text-slate-900 leading-none">
-              {formatHours(todaySeconds)} <span className="text-lg text-slate-400 font-bold">hrs</span>
-            </h3>
-          </div>
-          <div className={`p-3 rounded-xl ${isStudying ? 'bg-indigo-600 text-white animate-pulse' : 'bg-white text-slate-400'} border border-slate-100 shadow-sm transition-all`}>
-            <Timer size={20} />
-          </div>
-        </div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    <div className="bg-brand-navy/[0.03] border border-brand-navy/5 p-4 rounded-2xl flex items-center justify-between group hover:bg-white hover:shadow-md transition-all">
+                      <div className="flex items-center gap-3">
+                        <div className={`p-3 rounded-xl ${isStudying ? 'bg-brand-orange text-white animate-pulse' : 'bg-brand-orange/10 text-brand-orange'} transition-all`}>
+                          <Timer size={22} />
+                        </div>
+                        <div>
+                          <p className="text-[10px] font-bold text-brand-navy/40 uppercase tracking-widest">Total Today</p>
+                          <h3 className="text-xl font-black text-brand-navy leading-tight">
+                            {formatHours(todaySeconds)} <span className="text-sm text-brand-navy/30">hrs</span>
+                          </h3>
+                        </div>
+                      </div>
+                    </div>
 
-        <div className="bg-slate-50 border border-slate-100 p-4 rounded-xl flex items-center justify-between group hover:shadow-md transition-all">
-          <div>
-            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Weekly Average</p>
-            <h3 className="text-2xl font-black text-slate-900 leading-none">
-              4.8 <span className="text-lg text-slate-400 font-bold">hrs</span>
-            </h3>
-          </div>
-          <div className="p-3 rounded-xl bg-white text-slate-400 border border-slate-100 shadow-sm group-hover:bg-indigo-50 group-hover:text-indigo-500 transition-all">
-            <LayoutDashboard size={20} />
-          </div>
-        </div>
-      </div>
-    </div>
+                    <div className="bg-brand-navy/[0.03] border border-brand-navy/5 p-4 rounded-2xl flex items-center justify-between group hover:bg-white hover:shadow-md transition-all">
+                      <div className="flex items-center gap-3">
+                        <div className="p-3 rounded-xl bg-blue-500/10 text-blue-500">
+                          <LayoutDashboard size={22} />
+                        </div>
+                        <div>
+                          <p className="text-[10px] font-bold text-brand-navy/40 uppercase tracking-widest">Weekly Average</p>
+                          <h3 className="text-xl font-black text-brand-navy leading-tight">
+                            4.8 <span className="text-sm text-brand-navy/30">hrs</span>
+                          </h3>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
 
+                {/* Divider */}
+                <div className="border-t border-brand-navy/10 my-4"></div>
 
-    {/* Divider */}
-    <div className="border-t border-slate-100 my-4"></div>
-
-    {/* Performance Section */}
-    <div className="flex-1 flex flex-col min-h-0">
-      <div className="flex items-center justify-between mb-4">
-        <h2 className="text-base font-bold text-slate-900">
-          Performance Overview
-        </h2>
-        <p className="text-xs text-slate-400">
-          Latest Test Scores
-        </p>
-      </div>
+                {/* Performance Section */}
+                <div className="flex-1 flex flex-col min-h-0">
+                  <div className="flex items-center justify-between mb-4">
+                    <h2 className="text-base font-bold text-brand-navy font-heading">
+                      Performance Overview
+                    </h2>
+                    <p className="text-xs text-brand-navy/40">
+                      Latest Test Scores
+                    </p>
+                  </div>
 
       {/* Subject Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3 flex-1 overflow-hidden">
         {[
           { name: 'Physics', icon: Zap, color: 'text-amber-500', bg: 'bg-amber-50', score: user?.latestscore?.physics || '85', progress: 75 },
           { name: 'Chemistry', icon: Beaker, color: 'text-emerald-500', bg: 'bg-emerald-50', score: user?.latestscore?.chemistry || '78', progress: 62 },
@@ -264,26 +268,29 @@ function MentorSessionLayout({ user, onLogout }) {
               </div>
             </div>
 
-            <h3 className="text-xs font-bold text-slate-800 mb-2">
-              {sub.name}
-            </h3>
+                        <div>
+                          <h3 className="text-sm font-bold text-brand-navy mb-3">{sub.name}</h3>
+                          <div className="w-full h-1.5 bg-brand-navy/5 rounded-full overflow-hidden">
+                            <div
+                              className={`h-full ${sub.color} rounded-full`}
+                              style={{ width: `${sub.progress}%` }}
+                            />
+                          </div>
+                          <div className="flex justify-between items-center mt-2">
+                            <span className="text-[10px] text-brand-navy/40 font-medium">Progress</span>
+                            <span className="text-[10px] text-brand-navy/60 font-bold">{sub.progress}%</span>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
 
-            <div className="w-full h-1 bg-slate-200 rounded-full overflow-hidden">
-              <div
-                className={`h-full ${sub.bg.replace('50', '500')} rounded-full`}
-                style={{ width: `${sub.progress}%` }}
-              />
+              </div>
             </div>
-
           </div>
-        ))}
-      </div>
-    </div>
-
-  </div>
-</div>
+            )}
           </div>
-        )}
       </div>
     </div>
   );

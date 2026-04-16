@@ -18,16 +18,16 @@ const VoiceActivityIndicator = ({
 }) => {
   const barColor =
     variant === 'user'
-      ? 'bg-slate-900'
-      : 'bg-primary shadow-indigo-100';
+      ? 'bg-brand-navy'
+      : 'bg-brand-orange shadow-brand-orange/10';
 
   const glowColor =
     variant === 'user'
-      ? 'shadow-slate-400/30'
-      : 'shadow-indigo-500/30';
+      ? 'shadow-brand-navy/30'
+      : 'shadow-brand-orange/30';
 
   return (
-    <div className={cn('flex items-center gap-3 px-4 py-2 bg-white/40 backdrop-blur-md rounded-2xl border border-white/20 shadow-sm transition-all duration-500', className)}>
+    <div className={cn('flex items-center gap-3 px-4 py-2 transition-all duration-500', className)}>
       {/* Bars */}
       <div className="flex items-center gap-[4px] h-8 min-w-[30px] justify-center">
         {Array.from({ length: BAR_COUNT }).map((_, i) => (
@@ -35,7 +35,7 @@ const VoiceActivityIndicator = ({
             key={i}
             className={cn(
               'w-[4px] rounded-full transition-all duration-300',
-              isActive ? barColor : 'bg-slate-300',
+              isActive ? barColor : 'bg-brand-navy/30',
               isActive && `shadow-sm ${glowColor}`
             )}
             style={{
@@ -52,7 +52,7 @@ const VoiceActivityIndicator = ({
         <span
           className={cn(
             'text-[10px] font-bold uppercase tracking-widest',
-            isActive ? 'text-slate-900 animate-pulse' : 'text-slate-400'
+            isActive ? 'text-brand-navy animate-pulse' : 'text-brand-navy/40'
           )}
         >
           {label}
@@ -70,13 +70,9 @@ function randomBarHeight(index) {
   return heights[index % heights.length];
 }
 
-let keyframesInjected = false;
-
 const VoiceBarKeyframes = () => {
-  if (typeof document === 'undefined') return null; // SSR check
-  
-  // Actually, using a global style tag is safer if we want it to persist correctly
-  // but for simplicity in a component, we can use a hidden style tag or just inject it
+  if (typeof document === 'undefined') return null;
+
   return (
     <style>{`
       @keyframes voiceBar {
