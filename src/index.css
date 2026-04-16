@@ -6,27 +6,27 @@
 
 @layer base {
   :root {
-    --background: #F8FAFC;
-    --foreground: #1E293B;
+    --background: #F5F2ED;
+    --foreground: #2C3E50;
     --card: #FFFFFF;
-    --card-foreground: #1E293B;
+    --card-foreground: #2C3E50;
     --popover: #FFFFFF;
-    --popover-foreground: #1E293B;
-    --primary: #4F46E5;
+    --popover-foreground: #2C3E50;
+    --primary: #D35400;
     --primary-foreground: #FFFFFF;
-    --secondary: #06B6D4;
+    --secondary: #5D5C56;
     --secondary-foreground: #FFFFFF;
-    --muted: #EEF2F7;
-    --muted-foreground: #64748B;
-    --accent: #865CF8;
+    --muted: #DFD7CC;
+    --muted-foreground: #5D5C56;
+    --accent: #8E44AD;
     --accent-foreground: #FFFFFF;
-    --destructive: #EF4444;
+    --destructive: #C0392B;
     --destructive-foreground: #FFFFFF;
-    --border: rgba(30, 41, 59, 0.10);
-    --input: rgba(30, 41, 59, 0.08);
-    --ring: #4F46E5;
-    --radius: 0.625rem;
-    --success: #22C55E;
+    --border: rgba(44, 62, 80, 0.15);
+    --input: rgba(44, 62, 80, 0.12);
+    --ring: #D35400;
+    --radius: 0.75rem;
+    --success: #27AE60;
   }
 
   .dark {

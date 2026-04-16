@@ -8,9 +8,9 @@ const AgentStatus = ({ agentState }) => {
     : 'Connecting...';
 
   const color =
-    agentState === 'speaking' ? 'bg-green-500'
-    : agentState === 'listening' ? 'bg-green-400'
-    : agentState === 'thinking' ? 'bg-green-500 animate-pulse'
+    agentState === 'speaking' ? 'bg-brand-success'
+    : agentState === 'listening' ? 'bg-brand-success/70'
+    : agentState === 'thinking' ? 'bg-brand-success animate-pulse'
     : 'bg-brand-navy/30';
 
   return (

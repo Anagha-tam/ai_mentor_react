@@ -40,13 +40,13 @@ export default {
         input: 'var(--input)',
         ring: 'var(--ring)',
         brand: {
-          navy:      '#1E293B',
-          orange:    '#4F46E5',
-          secondary: '#06B6D4',
-          tertiary:  '#865CF8',
-          cream:     '#F8FAFC',
-          accent:    '#EEF2F7',
-          success:   '#22C55E',
+          navy:      '#2C3E50', // Tertiary
+          orange:    '#D35400', // Primary
+          secondary: '#5D5C56', // Secondary
+          tertiary:  '#8E44AD', // Keeping a complementary purple
+          cream:     '#F5F2ED', // Neutral
+          accent:    '#DFD7CC', // Warmer accent
+          success:   '#27AE60', // Adjusted green for the palette
         },
       },
     },

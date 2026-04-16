@@ -24,11 +24,11 @@ const AvatarPanel = ({
           {!isConnected && <AvatarConnecting />}
 
           {isAgentPresent && !hasVideo && (
-            <div className="flex flex-col items-center gap-4 text-center px-6">
-              <div className="w-20 h-20 rounded-full bg-primary/10 flex items-center justify-center">
-                <Bot className="w-10 h-10 text-primary animate-pulse" />
+            <div className="flex flex-col items-center gap-3 text-center px-6">
+              <div className="w-12 h-12 rounded-2xl bg-brand-orange/10 flex items-center justify-center">
+                <Bot className="w-6 h-6 text-brand-orange animate-pulse" />
               </div>
-              <p className="text-sm text-muted-foreground font-medium">Agent Joined (Audio Only)</p>
+              <p className="text-[10px] text-brand-navy/40 font-bold uppercase tracking-widest">Agent Joined (Audio Only)</p>
             </div>
           )}
 

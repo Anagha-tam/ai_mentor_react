@@ -243,30 +243,24 @@ function MentorSessionLayout({ user, onLogout }) {
                     </p>
                   </div>
 
-      {/* Subject Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3 flex-1 overflow-hidden">
-        {[
-          { name: 'Physics', icon: Zap, color: 'text-amber-500', bg: 'bg-amber-50', score: user?.latestscore?.physics || '85', progress: 75 },
-          { name: 'Chemistry', icon: Beaker, color: 'text-emerald-500', bg: 'bg-emerald-50', score: user?.latestscore?.chemistry || '78', progress: 62 },
-          { name: 'Maths', icon: Calculator, color: 'text-blue-500', bg: 'bg-blue-50', score: user?.latestscore?.maths || '92', progress: 88 },
-          { name: 'Biology', icon: Dna, color: 'text-rose-500', bg: 'bg-rose-50', score: user?.latestscore?.biology || '88', progress: 70 },
-        ].map((sub) => (
-          <div key={sub.name} className="bg-slate-50 p-4 rounded-xl border border-slate-100 hover:shadow-md transition-all flex flex-col justify-between">
-            
-            <div className="flex items-center justify-between mb-2">
-              <div className={`p-2 rounded-lg ${sub.bg} ${sub.color}`}>
-                <sub.icon size={18} />
-              </div>
-
-              <div className="text-right">
-                <p className="text-[9px] font-bold text-slate-400 uppercase">
-                  Marks
-                </p>
-                <p className="text-base font-black text-slate-900 leading-none">
-                  {sub.score}
-                </p>
-              </div>
-            </div>
+                  {/* Subject Cards */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                    {[
+                      { name: 'Physics', icon: Zap, color: 'bg-amber-500', iconColor: 'text-amber-500', bg: 'bg-amber-50', score: user?.latestscore?.physics || '85', progress: 75 },
+                      { name: 'Chemistry', icon: Beaker, color: 'bg-emerald-500', iconColor: 'text-emerald-500', bg: 'bg-emerald-50', score: user?.latestscore?.chemistry || '78', progress: 62 },
+                      { name: 'Maths', icon: Calculator, color: 'bg-blue-500', iconColor: 'text-blue-500', bg: 'bg-blue-50', score: user?.latestscore?.maths || '92', progress: 88 },
+                      { name: 'Biology', icon: Dna, color: 'bg-rose-500', iconColor: 'text-rose-500', bg: 'bg-rose-50', score: user?.latestscore?.biology || '88', progress: 70 },
+                    ].map((sub) => (
+                      <div key={sub.name} className="bg-white p-5 rounded-2xl border border-brand-navy/10 hover:shadow-lg transition-all flex flex-col gap-4">
+                        <div className="flex items-center justify-between">
+                          <div className={`p-2.5 rounded-xl ${sub.bg} ${sub.iconColor}`}>
+                            <sub.icon size={20} />
+                          </div>
+                          <div className="text-right">
+                            <p className="text-[9px] font-bold text-brand-navy/30 uppercase tracking-wider mb-0.5">Marks</p>
+                            <p className="text-xl font-black text-brand-navy leading-tight">{sub.score}</p>
+                          </div>
+                        </div>
 
                         <div>
                           <h3 className="text-sm font-bold text-brand-navy mb-3">{sub.name}</h3>
@@ -289,9 +283,9 @@ function MentorSessionLayout({ user, onLogout }) {
               </div>
             </div>
           </div>
-            )}
-          </div>
+        )}
       </div>
     </div>
+  </div>
   );
 }
