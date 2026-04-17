@@ -24,6 +24,10 @@ import '@livekit/components-styles';
 
 const getEnv = (key, fallback = '') => {
   const v = import.meta.env[`VITE_${key}`];
+  if (typeof v === 'string') {
+    const trimmed = v.trim();
+    return trimmed.length > 0 ? trimmed : fallback;
+  }
   return v ?? fallback;
 };
 
@@ -79,19 +83,26 @@ function AudioPermissionModal() {
   );
 }
 
-function makeUniqueRoomName(prefix) {
-  const base = (prefix || 'mentor').trim() || 'mentor';
-  if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
-    return `${base}-${crypto.randomUUID()}`;
-  }
-  return `${base}-${Date.now()}-${Math.random().toString(36).slice(2, 11)}`;
+function makeStableRoomName(user, fallbackPrefix = 'mentor') {
+  const base = (fallbackPrefix || 'mentor').trim() || 'mentor';
+  const rawId = user?.id || user?._id || user?.email || 'guest';
+  const safeId = String(rawId)
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9_-]/g, '-')
+    .replace(/-+/g, '-')
+    .replace(/^-|-$/g, '');
+  return `${base}-${safeId || 'guest'}`;
 }
 
 export default function ChatPage({ user, onLogout, sandboxId, roomName }) {
   const resolvedSandboxId = sandboxId || getEnv('SANDBOX_ID', 'aimentor-1t8exu');
   const resolvedAgentName = getEnv('AGENT_NAME', 'ai-mentor-node');
 
-  const resolvedRoomName = useMemo(() => roomName || makeUniqueRoomName("mentor"), [roomName]);
+  const resolvedRoomName = useMemo(
+    () => (roomName ? roomName : makeStableRoomName(user, 'mentor')),
+    [roomName, user],
+  );
 
   const tokenSource = useMemo(
     () => TokenSource.sandboxTokenServer(resolvedSandboxId),
@@ -104,7 +115,6 @@ export default function ChatPage({ user, onLogout, sandboxId, roomName }) {
   }), [resolvedRoomName, resolvedAgentName]);
 
   const session = useSession(tokenSource, sessionOptions);
-  console.log("session", session);
 
   useEffect(() => {
     void session.start();

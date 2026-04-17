@@ -1,7 +1,6 @@
 import { useState, useRef, useEffect, useMemo } from 'react';
 import { useLocalParticipant, useSessionMessages } from '@livekit/components-react';
 import { Send, Mic, Keyboard, Bot } from 'lucide-react';
-import { useSocket } from '../hooks/useSocket';
 import profileImg from '../assets/profile.png';
 
 const ChatPanel = ({ agentState, user }) => {
@@ -9,14 +8,13 @@ const ChatPanel = ({ agentState, user }) => {
   const scrollRef = useRef(null);
   const { messages: sessionMessages, send, isSending } = useSessionMessages();
   const { localParticipant } = useLocalParticipant();
-  const [socketMessage, setSocketMessage] = useState([]);
-  const socketRef = useSocket(user?.id || user?.email);
 
   const displayMessages = useMemo(() => {
     const localId = localParticipant?.identity;
-    const liveKitMsgs = sessionMessages.map((msg) => mapSessionMessageToDisplay(msg, localId));
-    return [...liveKitMsgs, ...socketMessage].sort((a, b) => a.timestamp - b.timestamp);
-  }, [sessionMessages, localParticipant, socketMessage]);
+    return sessionMessages
+      .map((msg) => mapSessionMessageToDisplay(msg, localId))
+      .sort((a, b) => a.timestamp - b.timestamp);
+  }, [sessionMessages, localParticipant]);
 
   useEffect(() => {
     if (scrollRef.current) {
@@ -24,28 +22,10 @@ const ChatPanel = ({ agentState, user }) => {
     }
   }, [displayMessages]);
 
-  useEffect(() => {
-    const socket = socketRef.current;
-    socket?.on('chat:message', (msg) => {
-      setSocketMessage(prev => [...prev, {
-        id: `socket-${Date.now()}`,
-        role: msg.from === (user?.id || user?.email) ? 'user' : 'agent',
-        text: msg.text,
-        timestamp: msg.timestamp,
-        source: 'text',
-      }]);
-    });
-    return () => socket?.off('chat:message');
-  }, [user]);
-
   const handleSend = async () => {
     const trimmed = inputText.trim();
     if (!trimmed || isSending) return;
     setInputText('');
-    socketRef.current?.emit('chat:message', {
-      text: trimmed,
-      roomId: `room-${user?.id || user?.email}`,
-    });
     try {
       await send(trimmed);
     } catch (error) {
