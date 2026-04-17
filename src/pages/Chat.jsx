@@ -1,15 +1,15 @@
 'use client';
 
-import React, { useMemo, useEffect } from 'react';
+import React, { useMemo, useEffect, useState } from 'react';
 import {
   useSession,
   useConnectionState,
-  StartAudio,
+  useRoomContext,
   SessionProvider,
   RoomAudioRenderer,
 } from '@livekit/components-react';
 import { ConnectionState, TokenSource } from 'livekit-client';
-import { Bot, User, LogOut, LayoutDashboard, Zap, Beaker, Calculator, Dna, Clock, Timer, Play, Pause } from 'lucide-react';
+import { Volume2, LayoutDashboard, Zap, Beaker, Calculator, Dna, Clock, Timer, Play, Pause } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { AgentSessionProvider } from '../components/agent-session-provider';
 
@@ -18,6 +18,7 @@ import ChatPanel from '../components/ChatPanel';
 import AvatarPanel from '../components/AvatarPanel';
 import Sidebar from '../components/Sidebar';
 import Header from '../components/Header';
+import RoadmapView from './RoadmapView';
 
 import '@livekit/components-styles';
 
@@ -25,6 +26,58 @@ const getEnv = (key, fallback = '') => {
   const v = import.meta.env[`VITE_${key}`];
   return v ?? fallback;
 };
+
+function AudioPermissionModal() {
+  const room = useRoomContext();
+  const [canPlay, setCanPlay] = useState(false);
+  const [dismissed, setDismissed] = useState(false);
+
+  useEffect(() => {
+    const update = () => setCanPlay(room.canPlaybackAudio);
+    update();
+    room.on('audioPlaybackChanged', update);
+    return () => { room.off('audioPlaybackChanged', update); };
+  }, [room]);
+
+  if (canPlay || dismissed) return null;
+
+  const handleOk = () => {
+    room.startAudio();
+    setDismissed(true);
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+      <div className="absolute inset-0 bg-brand-navy/30 backdrop-blur-sm" />
+      <div className="relative bg-white rounded-2xl shadow-2xl border border-brand-navy/10 w-full max-w-sm p-6 flex flex-col items-center gap-5">
+        <div className="w-12 h-12 rounded-2xl bg-brand-orange/10 border border-brand-orange/20 flex items-center justify-center">
+          <Volume2 size={22} className="text-brand-orange" />
+        </div>
+        <div className="text-center">
+          <h2 className="text-base font-black text-brand-navy font-heading tracking-tight">Enable Audio</h2>
+          <p className="mt-1.5 text-xs text-brand-navy/55 leading-relaxed">
+            Your browser requires permission to play audio.<br />
+            Click <span className="font-bold text-brand-navy">OK</span> to enable voice from your AI Mentor.
+          </p>
+        </div>
+        <div className="flex gap-3 w-full">
+          <button
+            onClick={() => setDismissed(true)}
+            className="flex-1 h-10 rounded-xl border border-brand-navy/20 text-brand-navy/60 text-sm font-bold hover:bg-brand-navy/5 transition-all"
+          >
+            Close
+          </button>
+          <button
+            onClick={handleOk}
+            className="flex-1 h-10 rounded-xl bg-brand-orange text-white text-sm font-bold hover:bg-brand-orange-hover transition-all shadow-md shadow-brand-orange/20"
+          >
+            OK
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
 
 function makeUniqueRoomName(prefix) {
   const base = (prefix || 'mentor').trim() || 'mentor';
@@ -66,13 +119,13 @@ export default function ChatPage({ user, onLogout, sandboxId, roomName }) {
       <div className="flex-1 flex overflow-hidden">
         <SessionProvider session={session}>
           <RoomAudioRenderer room={session?.room} />
-          <StartAudio label="Enable Audio" />
+          <AudioPermissionModal />
           <MentorSessionLayout user={user} onLogout={onLogout} />
         </SessionProvider>
       </div>
 
-      {/* Footer Info */}
-      <footer className="w-full bg-background/80 backdrop-blur-md p-1 z-20">
+      {/* Footer Info - hidden to reduce vertical gap */}
+      <footer className="w-full bg-background/80 backdrop-blur-md h-0 z-20">
         {/* <div className="max-w-2xl mx-auto w-full text-center">
           <p className="text-xs text-brand-navy/40 font-medium tracking-wide">
             Powered by <span className="text-green-600 font-bold">LiveKit AI</span>. Voice and Text interactions enabled.
@@ -107,9 +160,10 @@ function MentorSessionLayout({ user, onLogout }) {
   const formatHours = (seconds) => (seconds / 3600).toFixed(1);
 
   return (
-    <div className="flex h-full w-full overflow-hidden bg-background p-2 gap-2">
+    <div className="flex h-full w-full overflow-hidden bg-background p-2 pb-0 gap-2">
+
       {/* Sidebar: flush with edges on 2/3 sides */}
-      <div className="-mt-2 -ml-2 -mb-2 h-[calc(100%+16px)]">
+      <div className="-mt-2 -ml-2 -mb-0 h-[calc(100%+8px)]">
         <Sidebar
           isOpen={isSidebarOpen}
           onNavigate={setCurrentView}
@@ -121,20 +175,19 @@ function MentorSessionLayout({ user, onLogout }) {
       </div>
 
       {/* Main area: header + content */}
-      <div className="flex flex-col flex-1 overflow-hidden h-full">
-        <div className="-mt-2 -mr-2">
-          <Header user={user} onLogout={onLogout} agentState={agentState} />
-        </div>
-        <div className="flex-1 overflow-hidden h-full flex flex-col pt-2">
+      <div className="flex flex-col flex-1 overflow-hidden h-full -mt-2 -mr-2">
+        <Header user={user} onLogout={onLogout} agentState={agentState} />
+
+        <div className="flex-1 overflow-hidden flex flex-col pt-1.5 min-h-0">
             {currentView === 'chat' && (
-              <div className="flex-1 flex overflow-hidden h-full gap-2 px-2 pb-2">
+              <div className="flex-1 flex overflow-hidden gap-2 px-2 pb-1.5 min-h-0">
                 {/* Left Panel: Chat Transcript */}
                 <div className="w-[60%] min-w-[400px] bg-white shadow-sm z-10 rounded-2xl overflow-hidden border border-brand-navy/10">
                   <ChatPanel agentState={agentState} user={user} onLogout={onLogout} />
                 </div>
 
                 {/* Right Panel: Avatar/Video & Planner */}
-                <div className="flex-1 overflow-hidden h-full">
+                <div className="flex-1 overflow-hidden min-h-0">
                   <AvatarPanel
                     agent={agent}
                     videoTrack={agentVideoTrack}
@@ -190,7 +243,7 @@ function MentorSessionLayout({ user, onLogout }) {
                       className={`rounded-xl px-4 py-1.5 font-bold flex items-center gap-2 transition-all shadow-md ${
                         isStudying
                           ? 'bg-rose-500 hover:bg-rose-600 shadow-rose-200'
-                          : 'bg-brand-orange hover:bg-brand-orange/90 shadow-brand-orange/20'
+                          : 'bg-brand-orange hover:bg-brand-orange-hover shadow-brand-orange/20'
                       }`}
                     >
                       {isStudying ? <Pause size={14} /> : <Play size={14} />}
@@ -284,6 +337,12 @@ function MentorSessionLayout({ user, onLogout }) {
             </div>
           </div>
         )}
+
+
+        {currentView === 'study-plan' && (
+          <RoadmapView />
+        )}
+
       </div>
     </div>
   </div>

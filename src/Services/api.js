@@ -1,4 +1,4 @@
-const BASE_URL = import.meta.env.VITE_API_URL || 'http://192.168.29.171:5000/api';
+const BASE_URL = import.meta.env.VITE_API_URL || '/api';
 
 // Utility for constructing headers
 const getHeaders = (requireAuth = false) => {
@@ -124,6 +124,38 @@ export const getProfileData = async () => {
     headers: getHeaders(true),
   });
   return handleResponse(response);
+};
+
+/** Fetch all study plans */
+export const getStudyPlans = async () => {
+  const response = await fetch(`${BASE_URL}/data/study-plans`, {
+    method: 'GET',
+    headers: getHeaders(true),
+  });
+  return handleResponse(response);
+};
+
+/** Fetch all study materials */
+export const getStudyMaterials = async () => {
+  const response = await fetch(`${BASE_URL}/data/study-materials`, {
+    method: 'GET',
+    headers: getHeaders(true),
+  });
+  return handleResponse(response);
+};
+
+/** Download a study material PDF by ID */
+export const downloadMaterial = async (id) => {
+  const token = localStorage.getItem('token');
+  const response = await fetch(`${BASE_URL}/data/download-material/${id}`, {
+    method: 'GET',
+    headers: token ? { Authorization: `Bearer ${token}` } : {},
+  });
+  if (!response.ok) {
+    const data = await response.json().catch(() => ({}));
+    throw new Error(data.message || `Download failed (${response.status})`);
+  }
+  return response.blob();
 };
 
 /**

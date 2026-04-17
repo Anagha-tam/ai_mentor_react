@@ -41,7 +41,9 @@ export default {
         ring: 'var(--ring)',
         brand: {
           navy:      '#2C3E50', // Tertiary
-          orange:    '#D35400', // Primary
+          orange:    '#F97316', // Primary Button
+          'orange-hover': '#EA580C', // Hover
+          'orange-light': '#FFF7ED', // Light BG
           secondary: '#5D5C56', // Secondary
           tertiary:  '#8E44AD', // Keeping a complementary purple
           cream:     '#F5F2ED', // Neutral

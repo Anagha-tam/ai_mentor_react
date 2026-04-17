@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { User, Power, Flame, Trophy } from 'lucide-react';
 import profileImg from '../assets/profile.png';
 
@@ -17,16 +17,16 @@ const Header = ({ user, onLogout }) => {
   }, []);
 
   return (
-    <header className="w-full bg-white px-5 py-3 flex items-center justify-end gap-3 z-30 rounded-b-2xl shadow-sm border-b border-brand-navy/10 relative">
+    <header className="w-full bg-white px-5 py-3 flex items-center justify-end gap-3 z-30 rounded-b-2xl shadow-sm">
 
       {/* Streak */}
-      <div className="flex items-center gap-1.5 bg-brand-orange/10 px-3 py-1.5 rounded-full">
-        <Flame size={13} className="text-brand-orange" />
-        <span className="text-[11px] font-bold text-brand-orange">12 Days</span>
+      <div className="flex items-center gap-1.5 bg-brand-accent/10 px-3 py-1.5 rounded-full">
+        <Flame size={13} className="text-brand-accent" />
+        <span className="text-[11px] font-bold text-brand-accent">12 Days</span>
       </div>
 
       {/* Trophy */}
-      <button className="w-8 h-8 rounded-full bg-brand-navy/5 border border-brand-navy/10 flex items-center justify-center text-brand-navy/40 hover:text-brand-orange hover:bg-brand-orange/10 transition-all">
+      <button className="w-8 h-8 rounded-full bg-brand-navy/5 border border-brand-navy/10 flex items-center justify-center text-brand-navy/40 hover:text-brand-accent hover:bg-brand-accent/10 transition-all">
         <Trophy size={14} />
       </button>
 

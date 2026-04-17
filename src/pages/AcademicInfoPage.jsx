@@ -308,7 +308,7 @@ export default function AcademicInfoPage({ user, onProfileComplete }) {
                 <Button
                   onClick={() => setStep(step + 1)}
                   disabled={step === 1 && !formData.stream}
-                  className="h-14 flex-1 rounded-2xl bg-brand-orange text-white font-bold shadow-lg shadow-brand-orange/10 hover:bg-brand-orange/90 hover:-translate-y-0.5 active:translate-y-0 transition-all"
+                  className="h-14 flex-1 rounded-2xl bg-brand-orange text-white font-bold shadow-lg shadow-brand-orange/10 hover:bg-brand-orange-hover hover:-translate-y-0.5 active:translate-y-0 transition-all"
                 >
                   Continue
                   <ChevronRight size={20} className="ml-2" />
@@ -317,7 +317,7 @@ export default function AcademicInfoPage({ user, onProfileComplete }) {
                 <Button
                   onClick={handleSave}
                   disabled={loading}
-                  className="h-14 flex-1 rounded-2xl bg-brand-orange text-white font-bold shadow-lg shadow-brand-orange/20 hover:bg-brand-orange/90 hover:-translate-y-0.5 active:translate-y-0 transition-all"
+                  className="h-14 flex-1 rounded-2xl bg-brand-orange text-white font-bold shadow-lg shadow-brand-orange/20 hover:bg-brand-orange-hover hover:-translate-y-0.5 active:translate-y-0 transition-all"
                 >
                   {loading ? 'Creating Profile...' : 'Complete Profile'}
                 </Button>

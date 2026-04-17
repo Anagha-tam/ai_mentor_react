@@ -153,7 +153,7 @@ export default function LoginPage({ onSwitchToSignUp, onLoginSuccess }) {
                 <Button
                   type="submit"
                   disabled={loading}
-                  className="w-full h-12 flex justify-center items-center rounded-xl shadow-lg shadow-brand-orange/20 text-sm font-bold text-white bg-brand-orange hover:bg-brand-orange/90 hover:-translate-y-0.5 active:translate-y-0 transition-all duration-200"
+                  className="w-full h-12 flex justify-center items-center rounded-xl shadow-lg shadow-brand-orange/20 text-sm font-bold text-white bg-brand-orange hover:bg-brand-orange-hover hover:-translate-y-0.5 active:translate-y-0 transition-all duration-200"
                 >
                   {loading ? 'Sign in...' : 'Sign in'}
                 </Button>

@@ -129,7 +129,7 @@ export default function MentorChatPage({ user, onLogout }) {
               type="submit"
               size="icon"
               disabled={!input.trim() || isTyping}
-              className="absolute right-2 bottom-1.5 rounded-full bg-brand-orange hover:bg-brand-orange/90 w-[38px] h-[38px] transition-transform active:scale-95"
+              className="absolute right-2 bottom-1.5 rounded-full bg-brand-orange hover:bg-brand-orange-hover w-[38px] h-[38px] transition-transform active:scale-95"
             >
               <Send size={18} className="translate-x-[-1px] translate-y-[1px]" />
             </Button>

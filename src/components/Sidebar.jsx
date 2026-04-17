@@ -24,12 +24,11 @@ const AgentStatus = ({ agentState }) => {
 const NavButton = ({ icon: Icon, label, onClick, isActive }) => (
   <button
     onClick={onClick}
-    className={`w-full flex flex-row items-center gap-3 px-4 py-2.5 rounded-xl mx-2 transition-all ${
+    className={`w-full flex flex-row items-center gap-3 py-2.5 transition-all border-l-[3px] ${
       isActive
-        ? 'bg-brand-orange/10 text-brand-orange'
-        : 'text-brand-navy/50 hover:text-brand-navy hover:bg-brand-navy/5'
+        ? 'bg-brand-orange/10 text-brand-orange border-brand-orange pl-[13px] pr-4 rounded-r-xl'
+        : 'text-brand-navy/50 hover:text-brand-navy hover:bg-brand-navy/5 border-transparent px-4'
     }`}
-    style={{ width: 'calc(100% - 16px)' }}
   >
     <div className={`p-1.5 rounded-lg ${isActive ? 'bg-brand-orange/15 text-brand-orange' : 'text-brand-navy/40'}`}>
       <Icon size={16} className="shrink-0" />

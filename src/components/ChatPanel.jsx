@@ -96,10 +96,10 @@ const ChatPanel = ({ agentState, user }) => {
       </div>
 
       {/* Input Area */}
-      <div className="px-4 py-2.5 bg-white">
+      <div className="px-4 py-1.5 bg-white">
         <form
           onSubmit={(e) => { e.preventDefault(); handleSend(); }}
-          className="relative flex items-center gap-2 bg-brand-navy/5 rounded-xl px-4 py-2 focus-within:ring-1 focus-within:ring-brand-orange/40 focus-within:bg-background transition-all"
+          className="relative flex items-center gap-2 bg-brand-navy/5 rounded-xl px-3 py-1 focus-within:ring-1 focus-within:ring-brand-orange/40 focus-within:bg-background transition-all"
         >
           <input
             type="text"
@@ -107,19 +107,19 @@ const ChatPanel = ({ agentState, user }) => {
             onChange={(e) => setInputText(e.target.value)}
             onKeyDown={handleKeyDown}
             placeholder="Type your message here..."
-            className="flex-1 bg-transparent text-xs text-brand-navy placeholder:text-brand-navy/35 outline-none py-1"
+            className="flex-1 bg-transparent text-xs text-brand-navy placeholder:text-brand-navy/35 outline-none py-0.5"
           />
           <button
             type="button"
             onClick={() => void handleSend()}
             disabled={!inputText.trim() || isSending}
-            className={`w-8 h-8 rounded-xl flex items-center justify-center transition-all duration-200 ${
+            className={`w-7 h-7 rounded-lg flex items-center justify-center transition-all duration-200 ${
               !inputText.trim() || isSending
                 ? 'bg-brand-navy/5 text-brand-navy/20 cursor-not-allowed'
-                : 'bg-brand-orange text-white hover:bg-brand-orange/90 active:scale-95 shadow-sm shadow-brand-orange/30'
+                : 'bg-brand-orange text-white hover:bg-brand-orange-hover active:scale-95 shadow-sm shadow-brand-orange/30'
             }`}
           >
-            <Send className="w-3.5 h-3.5" />
+            <Send className="w-3 h-3" />
           </button>
         </form>
       </div>
