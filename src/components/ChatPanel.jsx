@@ -4,6 +4,11 @@ import { Send, Mic, Keyboard, Bot } from 'lucide-react';
 import { useSocket } from '../hooks/useSocket';
 import profileImg from '../assets/profile.png';
 
+const SUGGESTIONS = [
+  "Explain Newton's laws of motion",
+  "Help me with integration by parts",
+];
+
 const ChatPanel = ({ agentState, user }) => {
   const [inputText, setInputText] = useState('');
   const scrollRef = useRef(null);
@@ -38,8 +43,8 @@ const ChatPanel = ({ agentState, user }) => {
     return () => socket?.off('chat:message');
   }, [user]);
 
-  const handleSend = async () => {
-    const trimmed = inputText.trim();
+  const handleSend = async (text) => {
+    const trimmed = (text ?? inputText).trim();
     if (!trimmed || isSending) return;
     setInputText('');
     socketRef.current?.emit('chat:message', {
@@ -50,7 +55,7 @@ const ChatPanel = ({ agentState, user }) => {
       await send(trimmed);
     } catch (error) {
       console.error('Failed to send chat message:', error);
-      setInputText(trimmed);
+      if (!text) setInputText(trimmed);
     }
   };
 
@@ -62,19 +67,39 @@ const ChatPanel = ({ agentState, user }) => {
   };
 
   return (
-    <div className="flex flex-col h-full bg-white relative">
+    <div className="flex flex-col h-full relative overflow-hidden"
+         style={{ background: 'linear-gradient(160deg, #f8f9ff 0%, #f3f4fd 50%, #eef0fb 100%)' }}>
 
       {/* Messages */}
-      <div ref={scrollRef} className="flex-1 overflow-y-auto custom-scrollbar px-4 py-5 space-y-4 scroll-smooth">
+      <div ref={scrollRef} className="flex-1 overflow-y-auto custom-scrollbar px-5 py-6 space-y-4 scroll-smooth">
 
         {displayMessages.length === 0 && (
-          <div className="flex flex-col items-center justify-center h-full gap-3 text-center">
-            <div className="w-12 h-12 rounded-2xl bg-brand-orange/10 flex items-center justify-center">
-              <Mic size={20} className="text-brand-orange/60" />
+          <div className="flex flex-col items-center justify-center h-full gap-6 text-center">
+
+            {/* Hero icon */}
+            <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-brand-orange to-[#6366F1]
+                            flex items-center justify-center
+                            shadow-[0_8px_32px_rgba(59,71,194,0.30)]">
+              <Mic size={18} className="text-white" />
             </div>
-            <div>
-              <p className="text-xs font-bold text-brand-navy/40">Ready to learn?</p>
-              <p className="text-[10px] text-brand-navy/25 uppercase tracking-widest mt-0.5">Start speaking or type below</p>
+
+            <p className="text-[15px] font-semibold text-brand-navy">Ready to learn?</p>
+
+            {/* Suggestion chips */}
+            <div className="flex flex-wrap gap-2 justify-center max-w-sm">
+              {SUGGESTIONS.map(s => (
+                <button
+                  key={s}
+                  onClick={() => handleSend(s)}
+                  className="px-3.5 py-2 rounded-full glass border-brand-orange/15
+                             text-xs font-medium text-brand-navy/60 hover:text-brand-orange
+                             hover:bg-brand-orange/8 hover:border-brand-orange/25
+                             hover:shadow-[0_2px_12px_rgba(59,71,194,0.12)]
+                             transition-all duration-200 text-left"
+                >
+                  {s}
+                </button>
+              ))}
             </div>
           </div>
         )}
@@ -84,42 +109,48 @@ const ChatPanel = ({ agentState, user }) => {
         ))}
 
         {agentState === 'thinking' && (
-          <div className="flex items-end gap-2">
-            <div className="w-8 h-8 rounded-xl bg-brand-orange flex items-center justify-center shrink-0 shadow-sm shadow-brand-orange/20">
-              <Bot size={14} className="text-white" />
+          <div className="flex items-end gap-2.5 animate-message-in">
+            <div className="w-7 h-7 rounded-xl bg-gradient-to-br from-brand-orange to-[#6366F1]
+                            flex items-center justify-center shrink-0
+                            shadow-[0_2px_8px_rgba(59,71,194,0.25)]">
+              <Bot size={13} className="text-white" />
             </div>
-            <div className="bg-brand-navy/5 border border-brand-navy/8 rounded-2xl rounded-bl-sm px-4 py-3">
+            <div className="glass rounded-2xl rounded-bl-sm px-4 py-3
+                            shadow-[0_4px_16px_rgba(59,71,194,0.08)]">
               <ThinkingDots />
             </div>
           </div>
         )}
       </div>
 
-      {/* Input Area */}
-      <div className="px-4 py-1.5 bg-white">
+      {/* Floating input */}
+      <div className="px-4 pb-4 pt-2">
         <form
           onSubmit={(e) => { e.preventDefault(); handleSend(); }}
-          className="relative flex items-center gap-2 bg-brand-navy/5 rounded-xl px-3 py-1 focus-within:ring-1 focus-within:ring-brand-orange/40 focus-within:bg-background transition-all"
+          className="flex items-center gap-2.5 glass-strong rounded-2xl px-4 py-2.5
+                     shadow-[0_4px_24px_rgba(59,71,194,0.10)]
+                     focus-within:shadow-[0_4px_24px_rgba(59,71,194,0.18)]
+                     focus-within:border-brand-orange/30 transition-all duration-200"
         >
           <input
             type="text"
             value={inputText}
             onChange={(e) => setInputText(e.target.value)}
             onKeyDown={handleKeyDown}
-            placeholder="Type your message here..."
-            className="flex-1 bg-transparent text-xs text-brand-navy placeholder:text-brand-navy/35 outline-none py-0.5"
+            placeholder="Type your message…"
+            className="flex-1 bg-transparent text-[13px] text-brand-navy
+                       placeholder:text-brand-navy/30 outline-none py-0.5"
           />
           <button
-            type="button"
-            onClick={() => void handleSend()}
+            type="submit"
             disabled={!inputText.trim() || isSending}
-            className={`w-7 h-7 rounded-lg flex items-center justify-center transition-all duration-200 ${
+            className={`w-8 h-8 rounded-xl flex items-center justify-center transition-all duration-200 ${
               !inputText.trim() || isSending
-                ? 'bg-brand-navy/5 text-brand-navy/20 cursor-not-allowed'
-                : 'bg-brand-orange text-white hover:bg-brand-orange-hover active:scale-95 shadow-sm shadow-brand-orange/30'
+                ? 'bg-brand-navy/6 text-brand-navy/20 cursor-not-allowed'
+                : 'bg-gradient-to-br from-brand-orange to-[#6366F1] text-white hover:scale-105 active:scale-95 shadow-[0_2px_10px_rgba(59,71,194,0.30)]'
             }`}
           >
-            <Send className="w-3 h-3" />
+            <Send className="w-3.5 h-3.5" />
           </button>
         </form>
       </div>
@@ -132,39 +163,38 @@ const MessageBubble = ({ message }) => {
   const isUser = message.role === 'user';
 
   return (
-    <div className={`flex items-end gap-2 ${isUser ? 'flex-row-reverse' : ''}`}>
+    <div className={`flex items-end gap-2.5 animate-message-in ${isUser ? 'flex-row-reverse' : ''}`}>
 
-      {/* Avatar dot */}
-      <div className={`w-8 h-8 rounded-xl flex items-center justify-center shrink-0 overflow-hidden ${
-        isUser ? 'border border-brand-navy/10' : 'bg-brand-orange shadow-sm shadow-brand-orange/20'
+      <div className={`w-7 h-7 rounded-xl flex items-center justify-center shrink-0 overflow-hidden ${
+        isUser
+          ? 'border border-white/80 shadow-[0_2px_8px_rgba(59,71,194,0.12)]'
+          : 'bg-gradient-to-br from-brand-orange to-[#6366F1] shadow-[0_2px_8px_rgba(59,71,194,0.25)]'
       }`}>
         {isUser ? (
           <img src={profileImg} alt="Me" className="w-full h-full object-cover" />
         ) : (
-          <Bot size={14} className="text-white" />
+          <Bot size={13} className="text-white" />
         )}
       </div>
 
-      {/* Bubble */}
       <div className={`max-w-[78%] flex flex-col gap-1 ${isUser ? 'items-end' : 'items-start'}`}>
-        <div className={`px-3.5 py-2.5 text-xs leading-relaxed ${
+        <div className={`px-4 py-2.5 text-[13px] leading-relaxed rounded-2xl ${
           isUser
-            ? 'bg-brand-orange text-white rounded-2xl rounded-br-sm'
-            : 'bg-brand-navy/5 border border-brand-navy/8 text-brand-navy rounded-2xl rounded-bl-sm'
+            ? 'bg-gradient-to-br from-brand-orange to-[#6366F1] text-white rounded-br-sm shadow-[0_4px_16px_rgba(59,71,194,0.25)]'
+            : 'glass rounded-bl-sm shadow-[0_4px_16px_rgba(59,71,194,0.08)] text-brand-navy'
         }`}>
           <p className="whitespace-pre-wrap">{message.text}</p>
         </div>
 
-        {/* Meta row */}
-        <div className="flex items-center gap-1.5 px-1 opacity-50">
+        <div className="flex items-center gap-1.5 px-1 opacity-35">
           {message.source === 'voice'
             ? <Mic className="w-2.5 h-2.5 text-brand-navy" />
             : <Keyboard className="w-2.5 h-2.5 text-brand-navy" />
           }
-          <span className="text-[9px] font-bold text-brand-navy uppercase tracking-wide">
+          <span className="text-[10px] font-medium text-brand-navy uppercase tracking-wide">
             {message.source}
           </span>
-          <span className="text-[9px] text-brand-navy ml-1">
+          <span className="text-[10px] text-brand-navy ml-0.5">
             {new Date(message.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: true })}
           </span>
         </div>
@@ -179,8 +209,8 @@ const ThinkingDots = () => (
     {[0, 1, 2].map((i) => (
       <div
         key={i}
-        className="w-1.5 h-1.5 rounded-full bg-brand-orange/40 animate-bounce"
-        style={{ animationDelay: `${i * 0.15}s`, animationDuration: '0.8s' }}
+        className="w-1.5 h-1.5 rounded-full bg-brand-orange/50 animate-think-fade"
+        style={{ animationDelay: `${i * 0.2}s` }}
       />
     ))}
   </div>

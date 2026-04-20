@@ -144,6 +144,15 @@ export const getStudyMaterials = async () => {
   return handleResponse(response);
 };
 
+/** Fetch all reminders for the authenticated student */
+export const getReminders = async () => {
+  const response = await fetch(`${BASE_URL}/data/all-reminders`, {
+    method: 'GET',
+    headers: getHeaders(true),
+  });
+  return handleResponse(response);
+};
+
 /** Download a study material PDF by ID */
 export const downloadMaterial = async (id) => {
   const token = localStorage.getItem('token');
@@ -173,4 +182,84 @@ export const getSandboxToken = async (email = 'sandbox@test.com') => {
     localStorage.setItem('token', data.token);
   }
   return data;
+};
+
+// =======================
+// ATTENDANCE APIs
+// =======================
+
+/**
+ * Send a camera presence ping (candidate-side telemetry, called every ~5s)
+ * @param {{ status: string, note: string, cameraOn: boolean, avatarReady: boolean, personDetected: boolean, roomName: string|null, clientTs: string }} payload
+ */
+export const postAttendancePing = async (payload) => {
+  const response = await fetch(`${BASE_URL}/attendance/camera`, {
+    method: 'POST',
+    headers: getHeaders(true),
+    body: JSON.stringify(payload),
+  });
+  return handleResponse(response);
+};
+
+/**
+ * Fetch latest attendance records (admin-only)
+ * @param {number} limit
+ */
+export const getAttendanceRecords = async (limit = 100) => {
+  const adminToken = localStorage.getItem('ai_mentor_admin_token');
+  const response = await fetch(`${BASE_URL}/attendance/camera/latest?limit=${limit}`, {
+    method: 'GET',
+    headers: {
+      'Content-Type': 'application/json',
+      ...(adminToken ? { Authorization: `Bearer ${adminToken}` } : {}),
+    },
+  });
+  return handleResponse(response);
+};
+
+// =======================
+// ADMIN APIs
+// =======================
+
+/**
+ * Admin login — returns { token } directly (no data wrapper)
+ * @param {{ email: string, password: string }} credentials
+ */
+export const adminLogin = async ({ email, password }) => {
+  const response = await fetch(`${BASE_URL}/admin/login`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email, password }),
+  });
+  return handleResponse(response);
+};
+
+/** Fetch list of invited candidates (admin-only). Returns { records: [...] } */
+export const getInvitedCandidates = async () => {
+  const adminToken = localStorage.getItem('ai_mentor_admin_token');
+  const response = await fetch(`${BASE_URL}/admin/candidates/invited`, {
+    method: 'GET',
+    headers: {
+      'Content-Type': 'application/json',
+      ...(adminToken ? { Authorization: `Bearer ${adminToken}` } : {}),
+    },
+  });
+  return handleResponse(response);
+};
+
+/**
+ * Send an invitation to a candidate (admin-only)
+ * @param {{ name: string, email: string }} payload
+ */
+export const sendInvitation = async ({ name, email }) => {
+  const adminToken = localStorage.getItem('ai_mentor_admin_token');
+  const response = await fetch(`${BASE_URL}/admin/invitations`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      ...(adminToken ? { Authorization: `Bearer ${adminToken}` } : {}),
+    },
+    body: JSON.stringify({ name, email }),
+  });
+  return handleResponse(response);
 };

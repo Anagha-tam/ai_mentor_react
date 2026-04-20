@@ -28,11 +28,11 @@ const AgentAudioVisualizerBar = ({ state, className }) => {
           initial={false}
           animate={{
             height: bar.isActive ? '100%' : '15%',
-            backgroundColor: bar.isActive 
-              ? '#27AE60' // brand.success
-              : '#DFD7CC', // brand.accent / muted
-            boxShadow: bar.isActive 
-              ? '0 0 12px rgba(39, 174, 96, 0.4)' 
+            backgroundColor: bar.isActive
+              ? '#22A06B'
+              : '#E4E4EF',
+            boxShadow: bar.isActive
+              ? '0 0 10px rgba(34, 160, 107, 0.35)'
               : 'none'
           }}
           transition={{

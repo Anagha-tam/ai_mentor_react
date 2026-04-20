@@ -5,13 +5,12 @@ import {
   AlertCircle, Loader2, CalendarDays, Download,
 } from 'lucide-react';
 
-// ─── Colour map by subject ────────────────────────────────────────────────────
 const SUBJECT_STYLE = {
-  Physics:   { bg: 'bg-amber-50',   text: 'text-amber-700',   border: 'border-amber-200',   dot: 'bg-amber-400' },
-  Chemistry: { bg: 'bg-emerald-50', text: 'text-emerald-700', border: 'border-emerald-200', dot: 'bg-emerald-400' },
-  Maths:     { bg: 'bg-blue-50',    text: 'text-blue-700',    border: 'border-blue-200',    dot: 'bg-blue-400' },
-  Biology:   { bg: 'bg-rose-50',    text: 'text-rose-700',    border: 'border-rose-200',    dot: 'bg-rose-400' },
-  default:   { bg: 'bg-brand-orange/8', text: 'text-brand-orange', border: 'border-brand-orange/20', dot: 'bg-brand-orange' },
+  Physics:   { bg: 'bg-amber-50',   text: 'text-amber-700',   border: 'border-amber-200',   dot: 'bg-amber-400',   node: 'bg-amber-500' },
+  Chemistry: { bg: 'bg-emerald-50', text: 'text-emerald-700', border: 'border-emerald-200', dot: 'bg-emerald-400', node: 'bg-emerald-500' },
+  Maths:     { bg: 'bg-blue-50',    text: 'text-blue-700',    border: 'border-blue-200',    dot: 'bg-blue-400',    node: 'bg-blue-500' },
+  Biology:   { bg: 'bg-rose-50',    text: 'text-rose-700',    border: 'border-rose-200',    dot: 'bg-rose-400',    node: 'bg-rose-500' },
+  default:   { bg: 'bg-brand-orange/8', text: 'text-brand-orange', border: 'border-brand-orange/20', dot: 'bg-brand-orange', node: 'bg-brand-orange' },
 };
 
 function subjectStyle(subject) {
@@ -23,13 +22,11 @@ function formatDate(iso) {
   return new Date(iso).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
 }
 
-// ─── Shared UI ────────────────────────────────────────────────────────────────
-
 function Spinner() {
   return (
     <div className="flex flex-col items-center justify-center py-16 gap-3">
-      <Loader2 size={24} className="text-brand-orange animate-spin" />
-      <p className="text-sm text-brand-navy/50">Loading…</p>
+      <Loader2 size={22} className="text-brand-orange animate-spin" />
+      <p className="text-[13px] text-brand-navy/40 font-medium">Loading…</p>
     </div>
   );
 }
@@ -37,8 +34,8 @@ function Spinner() {
 function ErrorBox({ message }) {
   return (
     <div className="flex items-center gap-3 bg-red-50 border border-red-200 rounded-2xl px-4 py-3 mt-4">
-      <AlertCircle size={16} className="text-red-400 shrink-0" />
-      <p className="text-sm text-red-500 font-medium">{message}</p>
+      <AlertCircle size={15} className="text-red-400 shrink-0" />
+      <p className="text-[13px] text-red-500 font-medium">{message}</p>
     </div>
   );
 }
@@ -46,34 +43,33 @@ function ErrorBox({ message }) {
 function Empty({ icon: Icon, message }) {
   return (
     <div className="flex flex-col items-center justify-center py-16 gap-3 text-center">
-      <div className="w-12 h-12 rounded-2xl bg-brand-navy/5 flex items-center justify-center">
-        <Icon size={20} className="text-brand-navy/30" />
+      <div className="w-11 h-11 rounded-2xl bg-brand-navy/5 flex items-center justify-center">
+        <Icon size={18} className="text-brand-navy/25" />
       </div>
-      <p className="text-sm text-brand-navy/40 font-medium">{message}</p>
+      <p className="text-[13px] text-brand-navy/40 font-medium">{message}</p>
     </div>
   );
 }
 
-// ─── Tab bar ──────────────────────────────────────────────────────────────────
-
+// ── Underline tab bar ─────────────────────────────────────────────────────────
 function TabBar({ active, onChange }) {
   const tabs = [
     { id: 'plans',     label: 'Study Plans',    icon: Map },
-    { id: 'materials', label: 'Study Materials', icon: BookOpen },
+    { id: 'materials', label: 'Materials',       icon: BookOpen },
   ];
   return (
-    <div className="flex gap-1 bg-brand-navy/5 p-1 rounded-xl w-fit">
+    <div className="flex gap-6 border-b border-brand-navy/8">
       {tabs.map(({ id, label, icon: Icon }) => (
         <button
           key={id}
           onClick={() => onChange(id)}
-          className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition-all ${
+          className={`flex items-center gap-2 pb-2.5 text-[13px] font-semibold transition-colors duration-150 ${
             active === id
-              ? 'bg-white text-brand-orange shadow-sm'
-              : 'text-brand-navy/50 hover:text-brand-navy'
+              ? 'text-brand-navy border-b-2 border-brand-orange -mb-px'
+              : 'text-brand-navy/40 hover:text-brand-navy/70'
           }`}
         >
-          <Icon size={15} />
+          <Icon size={14} />
           {label}
         </button>
       ))}
@@ -81,8 +77,7 @@ function TabBar({ active, onChange }) {
   );
 }
 
-// ─── Study Plans ──────────────────────────────────────────────────────────────
-
+// ── Study Plans ───────────────────────────────────────────────────────────────
 function WeekRow({ week, index, total }) {
   const [open, setOpen] = useState(false);
   const isLast = index === total - 1;
@@ -90,46 +85,46 @@ function WeekRow({ week, index, total }) {
   return (
     <div className="flex gap-4">
       {/* Timeline spine */}
-      <div className="flex flex-col items-center pt-2">
-        <div className="w-8 h-8 rounded-full bg-brand-orange text-white text-[11px] font-black flex items-center justify-center shrink-0 shadow-md shadow-brand-orange/30 ring-4 ring-brand-orange/10">
+      <div className="flex flex-col items-center pt-2.5">
+        <div className="w-7 h-7 rounded-full bg-brand-orange text-white text-xs font-bold flex items-center justify-center shrink-0 shadow-card ring-4 ring-brand-orange/10">
           {week.weekNumber}
         </div>
-        {!isLast && <div className="w-px flex-1 bg-brand-navy/10 mt-2" />}
+        {!isLast && <div className="w-px flex-1 bg-brand-navy/8 mt-2" />}
       </div>
 
       {/* Card */}
-      <div className={`flex-1 ${isLast ? 'pb-0' : 'pb-5'}`}>
+      <div className={`flex-1 ${isLast ? 'pb-0' : 'pb-4'}`}>
         <button
           onClick={() => setOpen(o => !o)}
-          className="w-full flex items-center justify-between bg-white border border-brand-navy/8 rounded-2xl px-5 py-4 shadow-sm hover:shadow-md hover:border-brand-orange/25 transition-all text-left"
+          className="w-full flex items-center justify-between bg-white border border-brand-navy/8 rounded-2xl px-5 py-4 shadow-card hover:shadow-card-hover hover:-translate-y-px hover:border-brand-orange/20 transition-all duration-150 text-left"
         >
           <div>
-            <p className="text-sm font-bold text-brand-navy leading-tight">{week.title}</p>
-            <p className="text-[11px] text-brand-navy/40 mt-1 font-medium">
+            <p className="text-[13px] font-semibold text-brand-navy leading-tight">{week.title}</p>
+            <p className="text-xs text-brand-navy/35 mt-0.5 font-medium">
               {week.topics?.length ?? 0} topic{week.topics?.length !== 1 ? 's' : ''}
             </p>
           </div>
-          <div className={`w-7 h-7 rounded-lg flex items-center justify-center shrink-0 transition-all ${
+          <div className={`w-6 h-6 rounded-lg flex items-center justify-center shrink-0 transition-colors duration-150 ${
             open ? 'bg-brand-orange/10' : 'bg-brand-navy/5'
           }`}>
             {open
-              ? <ChevronUp size={14} className="text-brand-orange" />
-              : <ChevronDown size={14} className="text-brand-navy/40" />
+              ? <ChevronUp size={13} className="text-brand-orange" />
+              : <ChevronDown size={13} className="text-brand-navy/35" />
             }
           </div>
         </button>
 
         {open && week.topics?.length > 0 && (
-          <div className="mt-1.5 bg-white border border-brand-navy/8 rounded-2xl overflow-hidden shadow-sm">
+          <div className="mt-1.5 bg-white border border-brand-navy/8 rounded-2xl overflow-hidden shadow-card animate-message-in">
             {week.topics.map((topic, i) => (
               <div
                 key={i}
                 className={`flex items-center gap-3 px-5 py-2.5 ${
-                  i < week.topics.length - 1 ? 'border-b border-brand-navy/[0.06]' : ''
+                  i < week.topics.length - 1 ? 'border-b border-brand-navy/5' : ''
                 }`}
               >
-                <span className="w-1.5 h-1.5 rounded-full bg-brand-navy/20 shrink-0" />
-                <p className="text-[12px] text-brand-navy/60 font-medium">{topic}</p>
+                <span className="w-1 h-1 rounded-full bg-brand-navy/20 shrink-0" />
+                <p className="text-xs text-brand-navy/55 font-medium">{topic}</p>
               </div>
             ))}
           </div>
@@ -148,24 +143,24 @@ function PlanCard({ plan }) {
   const displayName = isUrl(plan.planName) ? 'Unnamed Plan' : (plan.planName || 'Unnamed Plan');
 
   return (
-    <div className="bg-white border border-brand-navy/10 rounded-2xl overflow-hidden">
+    <div className="bg-white border border-brand-navy/8 rounded-2xl overflow-hidden shadow-card hover:shadow-card-hover transition-shadow duration-150">
       {/* Header */}
       <button
         onClick={() => setOpen(o => !o)}
-        className="w-full flex items-center justify-between px-5 py-4 hover:bg-brand-navy/[0.02] transition-colors text-left"
+        className="w-full flex items-center justify-between px-5 py-4 hover:bg-brand-navy/[0.015] transition-colors duration-150 text-left"
       >
         <div className="flex items-center gap-3">
           <div className="w-9 h-9 rounded-xl bg-brand-orange/10 flex items-center justify-center shrink-0">
-            <Map size={16} className="text-brand-orange" />
+            <Map size={15} className="text-brand-orange" />
           </div>
           <div>
-            <p className="text-sm font-bold text-brand-navy">{displayName}</p>
+            <p className="text-[13px] font-semibold text-brand-navy">{displayName}</p>
             <div className="flex items-center gap-3 mt-0.5">
-              <span className="text-[11px] text-brand-navy/40 font-medium">
+              <span className="text-xs text-brand-navy/35 font-medium">
                 {plan.weeks?.length ?? 0} weeks
               </span>
               {plan.uploadedAt && (
-                <span className="flex items-center gap-1 text-[11px] text-brand-navy/35">
+                <span className="flex items-center gap-1 text-xs text-brand-navy/30">
                   <CalendarDays size={9} />
                   {formatDate(plan.uploadedAt)}
                 </span>
@@ -173,21 +168,24 @@ function PlanCard({ plan }) {
             </div>
           </div>
         </div>
-        <div className={`flex items-center gap-2 shrink-0 ml-4`}>
-          <span className={`text-[11px] font-bold px-2.5 py-0.5 rounded-full transition-all ${
+        <div className="flex items-center gap-2 shrink-0 ml-4">
+          <span className={`text-xs font-semibold px-2.5 py-0.5 rounded-full transition-colors duration-150 ${
             open ? 'bg-brand-orange text-white' : 'bg-brand-orange/10 text-brand-orange'
           }`}>
-            {open ? 'Hide' : 'View Plan'}
+            {open ? 'Hide' : 'View'}
           </span>
-          {open ? <ChevronUp size={14} className="text-brand-navy/30" /> : <ChevronDown size={14} className="text-brand-navy/30" />}
+          {open
+            ? <ChevronUp size={13} className="text-brand-navy/25" />
+            : <ChevronDown size={13} className="text-brand-navy/25" />
+          }
         </div>
       </button>
 
       {/* Weeks timeline */}
       {open && (
-        <div className="px-5 pt-2 pb-5 border-t border-brand-navy/8 bg-brand-navy/[0.01]">
+        <div className="px-5 pt-2 pb-5 border-t border-brand-navy/6 bg-brand-navy/[0.01] animate-message-in">
           {!plan.weeks?.length
-            ? <p className="text-xs text-brand-navy/40 py-4 text-center">No weeks available.</p>
+            ? <p className="text-xs text-brand-navy/35 py-4 text-center">No weeks available.</p>
             : (
               <div className="mt-4 space-y-0">
                 {plan.weeks.map((week, i) => (
@@ -205,7 +203,7 @@ function PlanCard({ plan }) {
 function StudyPlansTab({ plans, loading, error }) {
   if (loading) return <Spinner />;
   if (error)   return <ErrorBox message={error} />;
-  if (!plans.length) return <Empty icon={Map} message="No study plans found." />;
+  if (!plans.length) return <Empty icon={Map} message="No study plans yet." />;
 
   return (
     <div className="space-y-3 mt-5">
@@ -214,8 +212,7 @@ function StudyPlansTab({ plans, loading, error }) {
   );
 }
 
-// ─── Study Materials ──────────────────────────────────────────────────────────
-
+// ── Study Materials ───────────────────────────────────────────────────────────
 function MaterialCard({ material }) {
   const [downloading, setDownloading] = useState(false);
   const sc = subjectStyle(material.subject);
@@ -240,21 +237,21 @@ function MaterialCard({ material }) {
   };
 
   return (
-    <div className="bg-white border border-brand-navy/10 rounded-2xl overflow-hidden">
+    <div className="bg-white border border-brand-navy/8 rounded-2xl overflow-hidden shadow-card hover:shadow-card-hover hover:-translate-y-px transition-all duration-150">
       <div className="flex items-center justify-between px-5 py-4">
         <div className="flex items-center gap-3 min-w-0">
           <div className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 ${sc.bg}`}>
-            <BookOpen size={16} className={sc.text} />
+            <BookOpen size={15} className={sc.text} />
           </div>
           <div className="min-w-0">
-            <div className="flex items-center gap-2 flex-wrap">
-              <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${sc.bg} ${sc.text} ${sc.border}`}>
+            <div className="flex items-center gap-2 flex-wrap mb-0.5">
+              <span className={`text-[11px] font-semibold px-2 py-0.5 rounded-full border ${sc.bg} ${sc.text} ${sc.border}`}>
                 {material.subject}
               </span>
             </div>
-            <p className="text-sm font-bold text-brand-navy mt-0.5 truncate">{material.fileName}</p>
+            <p className="text-[13px] font-semibold text-brand-navy truncate">{material.fileName}</p>
             {material.uploadedAt && (
-              <span className="flex items-center gap-1 text-[11px] text-brand-navy/35 mt-0.5">
+              <span className="flex items-center gap-1 text-xs text-brand-navy/30 mt-0.5">
                 <CalendarDays size={9} />
                 {formatDate(material.uploadedAt)}
               </span>
@@ -264,13 +261,13 @@ function MaterialCard({ material }) {
         <button
           onClick={handleDownload}
           disabled={downloading}
-          className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-brand-orange/8 hover:bg-brand-orange/15 text-brand-orange text-[11px] font-bold transition-all disabled:opacity-50 shrink-0 ml-4"
+          className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-brand-orange/8 hover:bg-brand-orange/15 text-brand-orange text-xs font-semibold transition-colors duration-150 disabled:opacity-40 shrink-0 ml-4"
         >
           {downloading
             ? <Loader2 size={12} className="animate-spin" />
             : <Download size={12} />
           }
-          {downloading ? 'Downloading…' : 'PDF'}
+          {downloading ? 'Saving…' : 'PDF'}
         </button>
       </div>
     </div>
@@ -280,7 +277,7 @@ function MaterialCard({ material }) {
 function StudyMaterialsTab({ materials, loading, error }) {
   if (loading) return <Spinner />;
   if (error)   return <ErrorBox message={error} />;
-  if (!materials.length) return <Empty icon={BookOpen} message="No study materials found." />;
+  if (!materials.length) return <Empty icon={BookOpen} message="No study materials yet." />;
 
   return (
     <div className="space-y-3 mt-5">
@@ -289,8 +286,7 @@ function StudyMaterialsTab({ materials, loading, error }) {
   );
 }
 
-// ─── Root ─────────────────────────────────────────────────────────────────────
-
+// ── Root ──────────────────────────────────────────────────────────────────────
 export default function RoadmapView() {
   const [activeTab, setActiveTab] = useState('plans');
 
@@ -299,10 +295,10 @@ export default function RoadmapView() {
   const [plansError, setPlansError]     = useState('');
   const [plansFetched, setPlansFetched] = useState(false);
 
-  const [materials, setMaterials]                   = useState([]);
-  const [materialsLoading, setMaterialsLoading]     = useState(false);
-  const [materialsError, setMaterialsError]         = useState('');
-  const [materialsFetched, setMaterialsFetched]     = useState(false);
+  const [materials, setMaterials]               = useState([]);
+  const [materialsLoading, setMaterialsLoading] = useState(false);
+  const [materialsError, setMaterialsError]     = useState('');
+  const [materialsFetched, setMaterialsFetched] = useState(false);
 
   const fetchPlans = () => {
     if (plansFetched || plansLoading) return;
@@ -320,7 +316,7 @@ export default function RoadmapView() {
     setMaterialsError('');
     getStudyMaterials()
       .then(res => { setMaterials(res.data ?? []); setMaterialsFetched(true); })
-      .catch(err => setMaterialsError(err.message || 'Failed to load study materials.'))
+      .catch(err => setMaterialsError(err.message || 'Failed to load materials.'))
       .finally(() => setMaterialsLoading(false));
   };
 
@@ -330,25 +326,22 @@ export default function RoadmapView() {
     if (tab === 'materials') fetchMaterials();
   };
 
-  // Fetch the default tab on first render
   useState(() => { fetchPlans(); });
 
   return (
-    <div className="flex-1 bg-background overflow-y-auto custom-scrollbar p-2">
-      <div className="bg-white rounded-2xl border border-brand-navy/10 shadow-sm p-6 min-h-full">
+    <div className="flex-1 bg-background overflow-y-auto custom-scrollbar p-2 h-full">
+      <div className="bg-white rounded-2xl border border-brand-navy/8 shadow-panel p-6 min-h-full">
 
         {/* Page header */}
         <div className="mb-5">
-          <h1 className="text-xl font-black text-brand-navy font-heading tracking-tight">Roadmap</h1>
-          <p className="text-xs text-brand-navy/45 mt-0.5">Your study plans and reference materials</p>
+          <h1 className="text-heading text-brand-navy font-heading">Study Plan</h1>
+          <p className="text-xs text-brand-navy/40 mt-0.5 font-medium">Your plans and reference materials</p>
         </div>
 
-        <div className="border-t border-brand-navy/8 mb-5" />
+        <div className="mb-5">
+          <TabBar active={activeTab} onChange={handleTabChange} />
+        </div>
 
-        {/* Tabs */}
-        <TabBar active={activeTab} onChange={handleTabChange} />
-
-        {/* Tab content */}
         {activeTab === 'plans' && (
           <StudyPlansTab plans={plans} loading={plansLoading} error={plansError} />
         )}

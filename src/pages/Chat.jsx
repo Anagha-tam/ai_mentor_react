@@ -17,7 +17,6 @@ import { useMentorLiveKit } from '../hooks/useMentorLiveKit';
 import ChatPanel from '../components/ChatPanel';
 import AvatarPanel from '../components/AvatarPanel';
 import Sidebar from '../components/Sidebar';
-import Header from '../components/Header';
 import RoadmapView from './RoadmapView';
 
 import '@livekit/components-styles';
@@ -160,10 +159,10 @@ function MentorSessionLayout({ user, onLogout }) {
   const formatHours = (seconds) => (seconds / 3600).toFixed(1);
 
   return (
-    <div className="flex h-full w-full overflow-hidden bg-background p-2 pb-0 gap-2">
+    <div className="flex h-full w-full overflow-visible bg-background p-2 pb-0 gap-2">
 
-      {/* Sidebar: flush with edges on 2/3 sides */}
-      <div className="-mt-2 -ml-2 -mb-0 h-[calc(100%+8px)]">
+      {/* Sidebar */}
+      <div className="-mt-2 -ml-2 -mb-0 h-[calc(100%+8px)] overflow-visible z-30 relative">
         <Sidebar
           isOpen={isSidebarOpen}
           onNavigate={setCurrentView}
@@ -174,20 +173,13 @@ function MentorSessionLayout({ user, onLogout }) {
         />
       </div>
 
-      {/* Main area: header + content */}
+      {/* Main area: content only */}
       <div className="flex flex-col flex-1 overflow-hidden h-full -mt-2 -mr-2">
-        <Header user={user} onLogout={onLogout} agentState={agentState} />
-
         <div className="flex-1 overflow-hidden flex flex-col pt-1.5 min-h-0">
             {currentView === 'chat' && (
               <div className="flex-1 flex overflow-hidden gap-2 px-2 pb-1.5 min-h-0">
-                {/* Left Panel: Chat Transcript */}
-                <div className="w-[60%] min-w-[400px] bg-white shadow-sm z-10 rounded-2xl overflow-hidden border border-brand-navy/10">
-                  <ChatPanel agentState={agentState} user={user} onLogout={onLogout} />
-                </div>
-
-                {/* Right Panel: Avatar/Video & Planner */}
-                <div className="flex-1 overflow-hidden min-h-0">
+                {/* Left Panel: Avatar/Video & Planner */}
+                <div className="w-[370px] shrink-0 overflow-hidden min-h-0">
                   <AvatarPanel
                     agent={agent}
                     videoTrack={agentVideoTrack}
@@ -196,6 +188,11 @@ function MentorSessionLayout({ user, onLogout }) {
                     agentState={agentState}
                     isConnected={isConnected}
                   />
+                </div>
+
+                {/* Right Panel: Chat Transcript */}
+                <div className="flex-1 bg-white shadow-sm z-10 rounded-2xl overflow-hidden border border-brand-navy/10">
+                  <ChatPanel agentState={agentState} user={user} onLogout={onLogout} />
                 </div>
               </div>
             )}

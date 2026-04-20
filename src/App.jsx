@@ -5,9 +5,14 @@ import LoginPage from "./pages/LoginPage";
 import SignUpPage from "./pages/SignUpPage";
 import AcademicInfoPage from "./pages/AcademicInfoPage";
 import Demo from "./pages/Chat";
+import AdminLoginPage from "./pages/AdminLoginPage";
+import AdminDashboardPage from "./pages/AdminDashboardPage";
 
 export default function App() {
   const [user, setUser] = useState(null);
+  const [adminToken, setAdminToken] = useState(
+    () => localStorage.getItem('ai_mentor_admin_token') || ''
+  );
 
   useEffect(() => {
     document.documentElement.classList.remove('dark');
@@ -110,16 +115,42 @@ export default function App() {
         }
       />
 
+      {/* Admin Login */}
+      <Route
+        path="/admin"
+        element={
+          adminToken
+            ? <Navigate to="/admin/dashboard" />
+            : <AdminLoginPage onLoginSuccess={(t) => {
+                localStorage.setItem('ai_mentor_admin_token', t);
+                setAdminToken(t);
+              }} />
+        }
+      />
+
+      {/* Admin Dashboard */}
+      <Route
+        path="/admin/dashboard"
+        element={
+          adminToken
+            ? <AdminDashboardPage onLogout={() => {
+                localStorage.removeItem('ai_mentor_admin_token');
+                setAdminToken('');
+              }} />
+            : <Navigate to="/admin" />
+        }
+      />
+
       {/* Default */}
       <Route
         path="*"
         element={
-          <Navigate 
+          <Navigate
             to={
-              user 
-                ? (isProfileComplete(user) ? "/chat" : "/academic-info") 
+              user
+                ? (isProfileComplete(user) ? "/chat" : "/academic-info")
                 : "/login"
-            } 
+            }
           />
         }
       />

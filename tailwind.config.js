@@ -40,16 +40,22 @@ export default {
         input: 'var(--input)',
         ring: 'var(--ring)',
         brand: {
-          navy:      '#2C3E50', // Tertiary
-          orange:    '#F97316', // Primary Button
-          'orange-hover': '#EA580C', // Hover
-          'orange-light': '#FFF7ED', // Light BG
-          secondary: '#5D5C56', // Secondary
-          tertiary:  '#8E44AD', // Keeping a complementary purple
-          cream:     '#F5F2ED', // Neutral
-          accent:    '#DFD7CC', // Warmer accent
-          success:   '#27AE60', // Adjusted green for the palette
+          navy:           '#111118', // Near-black — primary text
+          orange:         '#3B47C2', // Indigo — primary action color
+          'orange-hover': '#2D38A8', // Indigo darker for hover
+          'orange-light': '#EEF0FB', // Indigo tint background
+          secondary:      '#5A5A72', // Muted text
+          tertiary:       '#8E44AD', // Purple — kept for semantic use
+          cream:          '#F7F7FB', // Cool near-white background
+          accent:         '#E87722', // Warm amber — achievement indicators
+          success:        '#22A06B', // Cool green
         },
+      },
+      boxShadow: {
+        card: '0 1px 4px rgba(0,0,0,0.05), 0 2px 8px rgba(0,0,0,0.03)',
+        'card-hover': '0 4px 16px rgba(0,0,0,0.08), 0 1px 4px rgba(0,0,0,0.04)',
+        panel: '0 2px 12px rgba(0,0,0,0.06), 0 1px 3px rgba(0,0,0,0.04)',
+        modal: '0 8px 32px rgba(0,0,0,0.12), 0 2px 8px rgba(0,0,0,0.06)',
       },
     },
   },
