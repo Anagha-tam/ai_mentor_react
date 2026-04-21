@@ -144,6 +144,8 @@ function App() {
   const [candidateError, setCandidateError] = useState("");
   const [selectedCandidateEmail, setSelectedCandidateEmail] = useState("");
   const [studyProgress, setStudyProgress] = useState(null);
+  const [assessmentStatuses, setAssessmentStatuses] = useState([]);
+  const [assessmentLoading, setAssessmentLoading] = useState(false);
 
   const socketRef = useRef(null);
   const livekitRoomRef = useRef(null);
@@ -251,6 +253,42 @@ function App() {
     }
   };
 
+  const loadAssessmentStatuses = async (jwtToken) => {
+    try {
+      const payload = await requestJsonWithFallback("/data/study/assessment-statuses", {
+        headers: { Authorization: `Bearer ${jwtToken}` },
+      });
+      setAssessmentStatuses(Array.isArray(payload?.data) ? payload.data : []);
+    } catch {
+      // Not critical if fails
+    }
+  };
+
+  const handleTakeChapterAssessment = async (chapterIndex) => {
+    if (!token) return;
+    setAssessmentSubmitted(false);
+    setAssessmentAnswers({});
+    setAssessmentLoading(true);
+    try {
+      const payload = await requestJsonWithFallback(`/data/study/chapters/${chapterIndex}/assessment`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (payload?.success) {
+        setAssessmentModal({
+          open: true,
+          title: payload.title,
+          questions: payload.questions,
+          chapterIndex,
+          type: "chapter",
+        });
+      }
+    } catch (error) {
+      alert(error.message || "Failed to load assessment.");
+    } finally {
+      setAssessmentLoading(false);
+    }
+  };
+
   useEffect(() => {
     if (isAdminPath) {
       const storedAdminToken = window.localStorage.getItem(ADMIN_TOKEN_STORAGE_KEY);
@@ -266,6 +304,7 @@ function App() {
       const profile = await loadCandidateProfile(storedCandidateToken);
       const complete = Boolean(profile?.onboardingCompleted);
       if (complete) {
+        loadAssessmentStatuses(storedCandidateToken);
         setStatus("connecting");
         connectSocket(storedCandidateToken);
       } else {
@@ -1528,11 +1567,41 @@ function App() {
       onAssessmentAnswer={(questionId, option) => {
         setAssessmentAnswers((prev) => ({ ...prev, [questionId]: option }));
       }}
-      onSubmitAssessment={() => setAssessmentSubmitted(true)}
+      onSubmitAssessment={async () => {
+        if (assessmentModal.type === "chapter") {
+          const formattedAnswers = assessmentModal.questions.map((q) => {
+            const selected = assessmentAnswers[q.id];
+            return {
+              id: q.id,
+              selected,
+              isCorrect: selected === q.correctAnswer,
+            };
+          });
+          try {
+            await fetch(`${API_BASE_URL}/data/study/chapters/${assessmentModal.chapterIndex}/submit`, {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+                Authorization: `Bearer ${token}`,
+              },
+              body: JSON.stringify({ answers: formattedAnswers }),
+            });
+            setAssessmentSubmitted(true);
+            loadAssessmentStatuses(token);
+          } catch (error) {
+            alert("Failed to submit assessment.");
+          }
+        } else {
+          setAssessmentSubmitted(true);
+        }
+      }}
       onCloseAssessment={() => {
         setAssessmentModal((prev) => ({ ...prev, open: false }));
       }}
       studyProgress={studyProgress}
+      assessmentStatuses={assessmentStatuses}
+      assessmentLoading={assessmentLoading}
+      onTakeChapterAssessment={handleTakeChapterAssessment}
     />
   );
 }

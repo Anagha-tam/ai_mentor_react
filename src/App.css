@@ -507,6 +507,123 @@
   transition: background 0.16s ease;
 }
 
+.roadmap-topics li.topic-done::before {
+  background: #10b981;
+}
+
+/* Assessment Sidebar UI */
+.chapter-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+.take-btn, .retake-btn {
+  border: none;
+  background: #2f6ef6;
+  color: #fff;
+  font-size: 10px;
+  font-weight: 600;
+  padding: 4px 10px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background 0.2s;
+  text-transform: uppercase;
+}
+
+.take-btn:hover, .retake-btn:hover {
+  background: #1a56db;
+}
+
+.retake-btn {
+  background: #f3f4f6;
+  color: #4b5563;
+  border: 1px solid #d1d5db;
+}
+
+.retake-btn:hover {
+  background: #e5e7eb;
+}
+
+.status-badge {
+  font-size: 10px;
+  font-weight: 700;
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+
+.status-badge.attended {
+  background: #d1fae5;
+  color: #065f46;
+}
+
+.assessment-result-summary {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  text-align: center;
+  width: 100%;
+}
+
+.assessment-result-summary p {
+  margin: 0;
+  font-size: 14px;
+  color: #1a1a2e;
+}
+
+/* Assessment Loading Overlay */
+.assessment-loading-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  border-radius: 12px;
+}
+
+.assessment-loading-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 12px;
+  max-width: 300px;
+}
+
+.loader-spinner {
+  width: 40px;
+  height: 40px;
+  border: 3px solid #f3f3f3;
+  border-top: 3px solid #2f6ef6;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+.assessment-loading-content p {
+  margin: 0;
+  font-weight: 600;
+  color: #1f2937;
+  font-size: 16px;
+}
+
+.assessment-loading-content span {
+  font-size: 13px;
+  color: #6b7280;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
 .adm-click-row:hover {
   background: #f8f6ff;
 }

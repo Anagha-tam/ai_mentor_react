@@ -34,6 +34,9 @@ export function CandidateSessionPage({
   onSubmitAssessment,
   onCloseAssessment,
   studyProgress,
+  assessmentStatuses = [],
+  assessmentLoading,
+  onTakeChapterAssessment,
 }) {
   const [currentView, setCurrentView] = useState("chat");
   if (sessionEndedScreen) {
@@ -204,7 +207,25 @@ export function CandidateSessionPage({
 
                 return (
                   <div key={cIdx} className={`sidebar-chapter ${isChapterActive ? "active" : ""} ${isChapterDone ? "done" : ""}`}>
-                    <div className="sidebar-chapter-title">{chapter.chapterTitle}</div>
+                    <div className="sidebar-chapter-title">
+                      <span>{chapter.chapterTitle}</span>
+                      <div className="chapter-actions">
+                        {(() => {
+                          const status = assessmentStatuses.find((s) => s.chapterIndex === cIdx);
+                          if (status) {
+                            return (
+                              <>
+                                <span className="status-badge attended">✓ {status.score}/10</span>
+                                <button className="retake-btn" onClick={() => onTakeChapterAssessment(cIdx)}>Retake</button>
+                              </>
+                            );
+                          }
+                          return (
+                            <button className="take-btn" onClick={() => onTakeChapterAssessment(cIdx)}>Assessment</button>
+                          );
+                        })()}
+                      </div>
+                    </div>
                     <div className="sidebar-topics-list">
                       {chapter.topics?.map((topic, tIdx) => {
                         const isTopicActive = isChapterActive && tIdx === studyProgress.currentTopicIndex;
@@ -323,9 +344,26 @@ export function CandidateSessionPage({
                     Submit
                   </button>
                 ) : (
-                  <span>Assessment submitted. You can close this window.</span>
+                  <div className="assessment-result-summary">
+                    {assessmentModal.type === "chapter" ? (
+                      <p>Assessment submitted successfully! Check your status in the sidebar.</p>
+                    ) : (
+                      <span>Assessment submitted. You can close this window.</span>
+                    )}
+                    <button className="assessment-submit" onClick={onCloseAssessment}>Close</button>
+                  </div>
                 )}
               </div>
+            </div>
+          </div>
+        ) : null}
+        
+        {assessmentLoading ? (
+          <div className="assessment-loading-overlay">
+            <div className="assessment-loading-content">
+              <div className="loader-spinner" />
+              <p>Preparing your AI assessment...</p>
+              <span>Our AI is generating 10 specific questions for this chapter.</span>
             </div>
           </div>
         ) : null}
