@@ -27,6 +27,12 @@ export function CandidateSessionPage({
   chatInput,
   onChatInputChange,
   onSendTextMessage,
+  assessmentModal,
+  assessmentAnswers,
+  assessmentSubmitted,
+  onAssessmentAnswer,
+  onSubmitAssessment,
+  onCloseAssessment,
 }) {
   const [currentView, setCurrentView] = useState("chat");
   if (sessionEndedScreen) {
@@ -233,6 +239,52 @@ export function CandidateSessionPage({
               </div>
             </div>
           </div>
+        {assessmentModal?.open ? (
+          <div className="assessment-overlay">
+            <div className="assessment-modal">
+              <div className="assessment-head">
+                <h3>{assessmentModal.title || "Assessment"}</h3>
+                <button className="assessment-close" onClick={onCloseAssessment} type="button">
+                  Close
+                </button>
+              </div>
+              <p className="assessment-instructions">Choose one option for each question.</p>
+              <div className="assessment-body">
+                {(assessmentModal.questions || []).map((item, index) => (
+                  <div key={item.id || index} className="assessment-question">
+                    <p>
+                      {index + 1}. {item.question}
+                    </p>
+                    <div className="assessment-options">
+                      {(item.options || []).map((option) => {
+                        const selected = assessmentAnswers?.[item.id] === option;
+                        return (
+                          <button
+                            key={option}
+                            type="button"
+                            className={`assessment-option ${selected ? "selected" : ""}`}
+                            onClick={() => onAssessmentAnswer(item.id, option)}
+                          >
+                            {option}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                ))}
+              </div>
+              <div className="assessment-footer">
+                {!assessmentSubmitted ? (
+                  <button className="assessment-submit" type="button" onClick={onSubmitAssessment}>
+                    Submit
+                  </button>
+                ) : (
+                  <span>Assessment submitted. You can close this window.</span>
+                )}
+              </div>
+            </div>
+          </div>
+        ) : null}
       </section>
     </main>
   );

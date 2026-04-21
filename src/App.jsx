@@ -119,6 +119,9 @@ function App() {
   const [aiSpeaking, setAiSpeaking] = useState(false);
   const [avatarLoaderStep, setAvatarLoaderStep] = useState(0);
   const [avatarReady, setAvatarReady] = useState(false);
+  const [assessmentModal, setAssessmentModal] = useState({ open: false, title: "", questions: [] });
+  const [assessmentAnswers, setAssessmentAnswers] = useState({});
+  const [assessmentSubmitted, setAssessmentSubmitted] = useState(false);
   const [attendanceStatus, setAttendanceStatus] = useState("checking");
   const [attendanceNote, setAttendanceNote] = useState("Verifying camera presence...");
   const [adminToken, setAdminToken] = useState("");
@@ -152,6 +155,9 @@ function App() {
   const avatarVideoReadyRef = useRef(false);
   const avatarAudioElsRef = useRef([]);
   const pendingAvatarAudioElsRef = useRef([]);
+  const avatarReconnectTimerRef = useRef(null);
+  const avatarReconnectAttemptsRef = useRef(0);
+  const lastMergedUserMessageAtRef = useRef(0);
   const seenTranscriptIdsRef = useRef(new Set());
   const seenChatIdsRef = useRef(new Set());
   const spacePressedRef = useRef(false);
@@ -330,6 +336,29 @@ function App() {
       const updated = [...prev];
       updated[index] = { ...updated[index], ...nextMessage };
       return updated;
+    });
+  };
+  const mergeOrAppendUserMessage = (text, timestamp) => {
+    const safeText = String(text || "").trim();
+    if (!safeText) return;
+    const ts = Number(timestamp || Date.now());
+    setMessages((prev) => {
+      if (prev.length === 0) {
+        lastMergedUserMessageAtRef.current = ts;
+        return [...prev, { id: `user-merged-${ts}`, role: "user", text: safeText }];
+      }
+      const last = prev[prev.length - 1];
+      const withinMergeWindow = ts - lastMergedUserMessageAtRef.current <= 7000;
+      if (last?.role === "user" && withinMergeWindow) {
+        const needsSpace = last.text && !/[.\n ]$/.test(last.text);
+        const mergedText = `${last.text || ""}${needsSpace ? " " : ""}${safeText}`.trim();
+        const updated = [...prev];
+        updated[updated.length - 1] = { ...last, text: mergedText };
+        lastMergedUserMessageAtRef.current = ts;
+        return updated;
+      }
+      lastMergedUserMessageAtRef.current = ts;
+      return [...prev, { id: `user-merged-${ts}`, role: "user", text: safeText }];
     });
   };
   const clearAiSmoothers = () => {
@@ -693,11 +722,15 @@ function App() {
 
           if (topic === "mentor.user.transcript") {
             if (parsed?.type !== "user_transcript" || !parsed?.id) return;
-            upsertMessage({
-              id: `user-data-${parsed.id}`,
-              role: "user",
-              text: parsed.text || "",
-            });
+            if (parsed?.final) {
+              mergeOrAppendUserMessage(parsed.text || "", parsed.timestamp);
+            } else {
+              upsertMessage({
+                id: `user-data-${parsed.id}`,
+                role: "user",
+                text: parsed.text || "",
+              });
+            }
             return;
           }
 
@@ -720,6 +753,24 @@ function App() {
               void endConversation();
               return;
             }
+            return;
+          }
+
+          if (topic === "mentor.assessment") {
+            if (parsed?.type !== "assessment_start") return;
+            const questions = Array.isArray(parsed?.questions) ? parsed.questions : [];
+            setAssessmentModal({
+              open: true,
+              title: String(parsed?.title || "Assessment"),
+              questions,
+            });
+            setAssessmentAnswers({});
+            setAssessmentSubmitted(false);
+            appendMessage({
+              id: `sys-assessment-${Date.now()}`,
+              role: "system",
+              text: "Assessment requested. Please complete the MCQ popup.",
+            });
             return;
           }
 
@@ -746,6 +797,7 @@ function App() {
         avatarBootstrappedRef.current = false;
         avatarVideoReadyRef.current = false;
         setAvatarReady(false);
+        setAvatarLoading(false);
         for (const audioEl of avatarAudioElsRef.current) {
           audioEl.remove();
         }
@@ -756,6 +808,24 @@ function App() {
         pendingAvatarAudioElsRef.current = [];
         if (avatarContainerRef.current) avatarContainerRef.current.innerHTML = "";
         setAiSpeaking(false);
+
+        const shouldAutoRecover = !endingConversation && Boolean(socketRef.current?.connected);
+        if (!shouldAutoRecover) return;
+
+        const nextAttempt = avatarReconnectAttemptsRef.current + 1;
+        avatarReconnectAttemptsRef.current = nextAttempt;
+        if (nextAttempt > 3) {
+          setSocketError("Session disconnected repeatedly. Please logout and login again.");
+          return;
+        }
+
+        setSocketError("Session disconnected. Reconnecting...");
+        if (avatarReconnectTimerRef.current) {
+          clearTimeout(avatarReconnectTimerRef.current);
+        }
+        avatarReconnectTimerRef.current = setTimeout(() => {
+          void setupAvatarRoomWithRetry(jwtToken);
+        }, 500 * nextAttempt);
       });
       room.on(RoomEvent.ActiveSpeakersChanged, (speakers) => {
         const speaking = (speakers || []).some((participant) => {
@@ -767,6 +837,7 @@ function App() {
 
       await room.connect(payload.livekitUrl, payload.participantToken);
       livekitRoomRef.current = room;
+      avatarReconnectAttemptsRef.current = 0;
 
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       const micSource = stream.getAudioTracks()[0];
@@ -1153,6 +1224,12 @@ function App() {
   };
 
   const disconnectRealtime = () => {
+    if (avatarReconnectTimerRef.current) {
+      clearTimeout(avatarReconnectTimerRef.current);
+      avatarReconnectTimerRef.current = null;
+    }
+    avatarReconnectAttemptsRef.current = 0;
+    lastMergedUserMessageAtRef.current = 0;
     try {
       void localMicTrackRef.current?.mute?.();
       localMicTrackRef.current?.stop?.();
@@ -1205,6 +1282,9 @@ function App() {
     completionReportedRef.current = false;
     completionEligibleRef.current = false;
     pendingAutoEndRef.current = false;
+    setAssessmentModal({ open: false, title: "", questions: [] });
+    setAssessmentAnswers({});
+    setAssessmentSubmitted(false);
   };
 
   const endConversation = async () => {
@@ -1426,8 +1506,18 @@ function App() {
       endingConversation={endingConversation}
       liveSttText={liveSttText}
       socketError={socketError}
+      assessmentModal={assessmentModal}
+      assessmentAnswers={assessmentAnswers}
+      assessmentSubmitted={assessmentSubmitted}
       onChatInputChange={(event) => setChatInput(event.target.value)}
       onSendTextMessage={sendTextMessage}
+      onAssessmentAnswer={(questionId, option) => {
+        setAssessmentAnswers((prev) => ({ ...prev, [questionId]: option }));
+      }}
+      onSubmitAssessment={() => setAssessmentSubmitted(true)}
+      onCloseAssessment={() => {
+        setAssessmentModal((prev) => ({ ...prev, open: false }));
+      }}
     />
   );
 }
