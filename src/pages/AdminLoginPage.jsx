@@ -9,8 +9,9 @@ export function AdminLoginPage({
   onSubmit,
 }) {
   return (
-    <main style={loginStyles.scene}>
-      <section style={loginStyles.panel}>
+    <main className="auth-shell">
+      <section className="auth-left">
+      <section className="auth-card" style={loginStyles.panel}>
         <div style={loginStyles.panelTop}>
           <div style={loginStyles.brandMark}>
             <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2">
@@ -41,6 +42,13 @@ export function AdminLoginPage({
           {adminError ? <p className="error">{adminError}</p> : null}
         </form>
       </section>
+      </section>
+      <aside className="auth-right">
+        <div className="auth-right-content">
+          <h2>Admin Console</h2>
+          <p>Track candidate mentoring sessions, attendance, and progress insights.</p>
+        </div>
+      </aside>
     </main>
   );
 }

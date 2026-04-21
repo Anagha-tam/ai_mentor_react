@@ -20,8 +20,9 @@ export function AcademicInfoPage({ profile, loading, error, onChange, onSubmit, 
   };
 
   return (
-    <main style={loginStyles.scene}>
-      <section style={{ ...loginStyles.panel, maxWidth: "760px" }}>
+    <main className="auth-shell">
+      <section className="auth-left">
+      <section className="auth-card" style={{ ...loginStyles.panel, maxWidth: "760px" }}>
         <div style={loginStyles.panelTop}>
           <div style={loginStyles.brandMark}>AI</div>
           <p style={loginStyles.topTitle}>Academic Profile</p>
@@ -133,6 +134,13 @@ export function AcademicInfoPage({ profile, loading, error, onChange, onSubmit, 
           </PrimaryBtn>
         </form>
       </section>
+      </section>
+      <aside className="auth-right">
+        <div className="auth-right-content">
+          <h2>Your Journey</h2>
+          <p>Set your academics once. We will personalize every mentor session for you.</p>
+        </div>
+      </aside>
     </main>
   );
 }

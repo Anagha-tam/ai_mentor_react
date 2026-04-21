@@ -1,3 +1,5 @@
+import { useState } from "react";
+
 export function CandidateSessionPage({
   sessionEndedScreen,
   interruptAi,
@@ -26,6 +28,7 @@ export function CandidateSessionPage({
   onChatInputChange,
   onSendTextMessage,
 }) {
+  const [currentView, setCurrentView] = useState("chat");
   if (sessionEndedScreen) {
     return (
       <main className="interview-root">
@@ -43,209 +46,194 @@ export function CandidateSessionPage({
   }
 
   return (
-    <main className="interview-root">
-      <div className="topbar">
-        <div className="topbar-left">
-          <div className="brand">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2">
-              <rect x="2" y="4" width="20" height="16" rx="3" />
-              <path d="M2 8l10 6 10-6" />
-            </svg>
-          </div>
-          <div className="session-info">
-            <p>AI Mentor</p>
-            <span>Candidate guidance and doubt-clearing session</span>
-          </div>
-        </div>
-        <div className="live-dot">
-          <div className="dot-pulse" />
-          Live <span className="session-timer">{sessionTimer}</span>
-        </div>
-        <div className="topbar-right">
-          <button className="icon-btn" onClick={interruptAi}>
-            Interrupt
+    <main className="mentor-shell">
+      <aside className="mentor-rail">
+        <div className="mentor-rail-top">
+          <button
+            className={`mentor-rail-btn ${currentView === "chat" ? "active" : ""}`}
+            type="button"
+            onClick={() => setCurrentView("chat")}
+          >
+            💬
           </button>
-          <button className="icon-btn danger" onClick={disconnectAndLogout}>
-            Logout
+          <button
+            className={`mentor-rail-btn ${currentView === "dashboard" ? "active" : ""}`}
+            type="button"
+            onClick={() => setCurrentView("dashboard")}
+          >
+            📊
+          </button>
+          <button
+            className={`mentor-rail-btn ${currentView === "roadmap" ? "active" : ""}`}
+            type="button"
+            onClick={() => setCurrentView("roadmap")}
+          >
+            🗺
           </button>
         </div>
-      </div>
-
-      <div className="main-content">
-        <div className="feeds-col">
-          <div className="video-card">
-            <div className="video-inner">
-              <div ref={avatarContainerRef} className="avatar-host" />
-              {avatarLoading ? (
-                <div className="av-loader-wrap">
-                  <div className="av-logo-ring">
-                    <div className="av-ring-outer" />
-                    <div className="av-ring-spin" />
-                    <div className="av-ring-spin2" />
-                    <div className="av-logo-inner">
-                      <svg
-                        width="26"
-                        height="26"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="#7f77dd"
-                        strokeWidth="1.5"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                      >
-                        <circle cx="12" cy="8" r="4" />
-                        <path d="M4 20c0-4 3.6-7 8-7s8 3 8 7" />
-                        <circle cx="18" cy="6" r="2" fill="#7f77dd" stroke="none" />
-                        <path d="M20 4l1-1M22 6h1M20 8l1 1" />
-                      </svg>
+        <div className="mentor-rail-bottom">
+          <button className="mentor-rail-btn danger" type="button" onClick={disconnectAndLogout}>⎋</button>
+        </div>
+      </aside>
+      <section className="interview-root">
+        <div className="topbar">
+          <div className="topbar-left">
+            <div className="brand">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2">
+                <rect x="2" y="4" width="20" height="16" rx="3" />
+                <path d="M2 8l10 6 10-6" />
+              </svg>
+            </div>
+            <div className="session-info">
+              <p>AI Mentor</p>
+              <span>Candidate guidance and doubt-clearing session</span>
+            </div>
+          </div>
+          <div className="live-dot">
+            <div className="dot-pulse" />
+            Live <span className="session-timer">{sessionTimer}</span>
+          </div>
+          <div className="topbar-right">
+            <button className="icon-btn" onClick={interruptAi}>Interrupt</button>
+            <button className="icon-btn danger" onClick={disconnectAndLogout}>Logout</button>
+          </div>
+        </div>
+        <div className={`main-content anagha-layout ${currentView === "chat" ? "" : "view-hidden"}`}>
+          <div className="left-stack">
+            <div className="video-card">
+              <div className="video-inner">
+                <div ref={avatarContainerRef} className="avatar-host" />
+                {avatarLoading ? (
+                  <div className="av-loader-wrap">
+                    <div className="av-logo-ring">
+                      <div className="av-ring-outer" />
+                      <div className="av-ring-spin" />
+                      <div className="av-ring-spin2" />
+                      <div className="av-logo-inner">
+                        <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#7f77dd" strokeWidth="1.5">
+                          <circle cx="12" cy="8" r="4" />
+                          <path d="M4 20c0-4 3.6-7 8-7s8 3 8 7" />
+                        </svg>
+                      </div>
                     </div>
-                  </div>
-
-                  <div className="av-loader-text">
                     <div className="av-loader-title">Setting up your AI mentor session</div>
-                    <div className="av-soundwave">
-                      <div className="av-sw-bar" />
-                      <div className="av-sw-bar" />
-                      <div className="av-sw-bar" />
-                      <div className="av-sw-bar" />
-                      <div className="av-sw-bar" />
-                      <div className="av-sw-bar" />
-                      <div className="av-sw-bar" />
-                      <div className="av-sw-bar" />
-                      <div className="av-sw-bar" />
-                    </div>
-                  </div>
-
-                  <div className="av-steps">
-                    {avatarLoaderSteps.map((label, index) => {
-                      const isDone = index < avatarLoaderStep;
-                      const isActive = index === avatarLoaderStep;
-                      const stateClass = isDone ? "done" : isActive ? "active" : "pending";
-                      return (
+                    <div className="av-steps">
+                      {avatarLoaderSteps.map((label, index) => (
                         <div key={label} className="av-step">
-                          <div className={`av-step-dot ${stateClass}`}>
-                            {isDone ? (
-                              <svg width="11" height="11" viewBox="0 0 11 11">
-                                <polyline
-                                  points="2,5.5 4.5,8 9,3"
-                                  fill="none"
-                                  stroke="#5dcaa5"
-                                  strokeWidth="1.8"
-                                  strokeLinecap="round"
-                                  strokeLinejoin="round"
-                                />
-                              </svg>
-                            ) : (
-                              <svg width="10" height="10" viewBox="0 0 10 10">
-                                <circle cx="5" cy="5" r="3" fill={isActive ? "#7f77dd" : "#4a4a6a"} />
-                              </svg>
-                            )}
-                          </div>
-                          <span className={`av-step-label ${stateClass}`}>{label}</span>
+                          <div className={`av-step-dot ${index < avatarLoaderStep ? "done" : index === avatarLoaderStep ? "active" : "pending"}`} />
+                          <span className={`av-step-label ${index < avatarLoaderStep ? "done" : index === avatarLoaderStep ? "active" : "pending"}`}>{label}</span>
                         </div>
-                      );
-                    })}
+                      ))}
+                    </div>
+                    <div className="av-status-msg">{avatarLoaderStatus[avatarLoaderStep]}</div>
                   </div>
-
-                  <div className="av-status-msg">{avatarLoaderStatus[avatarLoaderStep]}</div>
-                </div>
-              ) : null}
-              <div className={`pip-cam ${camOn ? "cam-on" : ""}`}>
-                {camOn ? (
-                  <video ref={camVideoRef} className="pip-cam-video" autoPlay muted playsInline />
-                ) : (
-                  <>
-                    <div className="pip-user-avatar">U</div>
-                    <span className="pip-cam-label">Camera off</span>
-                  </>
-                )}
-                <div className="pip-mic-badge">
-                  <span>{status === "listening" ? "Listening" : "Live"}</span>
+                ) : null}
+                <div className={`pip-cam ${camOn ? "cam-on" : ""}`}>
+                  {camOn ? <video ref={camVideoRef} className="pip-cam-video" autoPlay muted playsInline /> : <span className="pip-cam-label">Audio only</span>}
                 </div>
               </div>
             </div>
-            <div className="video-badge">AI mentor</div>
-          </div>
-        </div>
-
-        <div className="right-col">
-          <div className="transcript-card">
-            <div className="transcript-header">
-              <p>Conversation transcript</p>
-              <span>{visibleMessages.length} messages · {userMessageCount} user turns</span>
+            <div className="planner-card">
+              <div className="planner-head"><p>Planner</p><span>Apr 2026</span></div>
+              <div className="planner-grid">
+                {["Tue", "Wed", "Thu", "Fri", "Sat", "Sun"].map((d, i) => (
+                  <div key={d} className={`planner-day ${i === 0 ? "active" : ""}`}><small>{d}</small><strong>{21 + i}</strong></div>
+                ))}
+              </div>
+              <div className="planner-note">Hold Space or the mic button to talk.</div>
             </div>
-            <div ref={transcriptBodyRef} className="transcript-body">
-              {!avatarReady ? <p className="empty">Transcript will appear once avatar is ready.</p> : null}
-              {avatarReady && visibleMessages.length === 0 ? <p className="empty">No conversation yet.</p> : null}
-              {visibleMessages.map((message) => {
-                const isUser = message.role === "user";
-                const isAi = message.role === "ai";
-                return (
-                  <div key={message.id} className={`msg ${isUser ? "right" : ""}`}>
-                    <span className={`msg-label ${isAi ? "ai" : isUser ? "user" : "system"}`}>
-                      {isAi ? "AI mentor" : isUser ? "You" : "System"}
-                    </span>
-                    <div className={`msg-bubble ${isAi ? "ai" : isUser ? "user" : "system"}`}>
-                      {message.text}
+          </div>
+          <div className="right-col">
+            <div className="transcript-card">
+              <div className="transcript-header">
+                <p>Conversation transcript</p>
+                <span>{visibleMessages.length} messages · {userMessageCount} user turns</span>
+              </div>
+              <div ref={transcriptBodyRef} className="transcript-body">
+                {!avatarReady ? <p className="empty">Transcript will appear once avatar is ready.</p> : null}
+                {avatarReady && visibleMessages.length === 0 ? <p className="empty">No conversation yet.</p> : null}
+                {visibleMessages.map((message) => {
+                  const isUser = message.role === "user";
+                  const isAi = message.role === "ai";
+                  return (
+                    <div key={message.id} className={`msg ${isUser ? "right" : ""}`}>
+                      <span className={`msg-label ${isAi ? "ai" : isUser ? "user" : "system"}`}>{isAi ? "AI mentor" : isUser ? "You" : "System"}</span>
+                      <div className={`msg-bubble ${isAi ? "ai" : isUser ? "user" : "system"}`}>{message.text}</div>
                     </div>
-                  </div>
-                );
-              })}
-              {avatarReady && aiSpeaking ? (
-                <div className="msg">
-                  <span className="msg-label ai">AI mentor</span>
-                  <div className="typing">
-                    <span />
-                    <span />
-                    <span />
-                  </div>
-                </div>
-              ) : null}
+                  );
+                })}
+                {avatarReady && aiSpeaking ? <div className="typing"><span /><span /><span /></div> : null}
+              </div>
             </div>
-          </div>
-
-          <div className="controls-bar">
-            <div className="chat-input-row in-controls">
-              <input
-                className="chat-input"
-                type="text"
-                value={chatInput}
-                onChange={onChatInputChange}
-                onKeyDown={(event) => {
+            <div className="controls-bar">
+              <div className="chat-input-row in-controls">
+                <input className="chat-input" type="text" value={chatInput} onChange={onChatInputChange} onKeyDown={(event) => {
                   if (event.key === "Enter") {
                     event.preventDefault();
                     onSendTextMessage();
                   }
-                }}
-                placeholder="Type a message..."
-              />
-              <button className="chat-send-btn" onClick={onSendTextMessage} disabled={!chatInput?.trim()}>
-                Send
+                }} placeholder="Type your message..." />
+                <button className="chat-send-btn" onClick={onSendTextMessage} disabled={!chatInput?.trim()}>Send</button>
+              </div>
+              <button className={`ptalk-btn ${status === "listening" ? "talking" : ""}`} onPointerDown={handleTalkPointerDown} onPointerUp={handleTalkPointerUp} onPointerCancel={handleTalkPointerUp}>
+                <span>{status === "listening" ? "Listening" : "Talk"}</span>
               </button>
+              <button className="end-btn" onClick={endConversation} disabled={endingConversation}>{endingConversation ? "Ending..." : "End call"}</button>
             </div>
-            <button
-              className={`ptalk-btn ${status === "listening" ? "talking" : ""}`}
-              onPointerDown={handleTalkPointerDown}
-              onPointerUp={handleTalkPointerUp}
-              onPointerCancel={handleTalkPointerUp}
-            >
-              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <path d="M12 1a3 3 0 0 1 3 3v8a3 3 0 0 1-6 0V4a3 3 0 0 1 3-3z" />
-                <path d="M19 10v2a7 7 0 0 1-14 0v-2" />
-                <line x1="12" y1="19" x2="12" y2="23" />
-                <line x1="8" y1="23" x2="16" y2="23" />
-              </svg>
-              <span>{status === "listening" ? "Listening" : "Talk"}</span>
-            </button>
-            <button className="end-btn" onClick={endConversation} disabled={endingConversation}>
-              {endingConversation ? "Ending..." : "End call"}
-            </button>
+            <p className="status-note">Tip: Hold the Talk button or Space to speak, then release to send.</p>
+            {liveSttText ? <p className="status-note">{liveSttText}</p> : null}
+            {socketError ? <p className="error-note">{socketError}</p> : null}
           </div>
-          <p className="status-note">Tip: Hold the Talk button or Space to speak, then release to send.</p>
-          {liveSttText ? <p className="status-note">{liveSttText}</p> : null}
-          {socketError ? <p className="error-note">{socketError}</p> : null}
         </div>
-      </div>
+        <div className={`alt-view ${currentView === "dashboard" ? "" : "view-hidden"}`}>
+            <div className="alt-header">
+              <h2>Dashboard</h2>
+              <span>Session analytics</span>
+            </div>
+            <div className="dash-grid">
+              <div className="dash-card">
+                <small>Session time</small>
+                <strong>{sessionTimer}</strong>
+              </div>
+              <div className="dash-card">
+                <small>Total messages</small>
+                <strong>{visibleMessages.length}</strong>
+              </div>
+              <div className="dash-card">
+                <small>Your turns</small>
+                <strong>{userMessageCount}</strong>
+              </div>
+              <div className="dash-card">
+                <small>Status</small>
+                <strong>{status === "listening" ? "Listening" : "Connected"}</strong>
+              </div>
+            </div>
+          </div>
+        <div className={`alt-view ${currentView === "roadmap" ? "" : "view-hidden"}`}>
+            <div className="alt-header">
+              <h2>Roadmap</h2>
+              <span>Interview prep plan</span>
+            </div>
+            <div className="roadmap-list">
+              <div className="roadmap-item done">
+                <strong>Foundation Revision</strong>
+                <p>Core concepts and quick formula recap.</p>
+              </div>
+              <div className="roadmap-item active">
+                <strong>Guided Doubt Sessions</strong>
+                <p>Use chat/voice to clear topic-wise doubts.</p>
+              </div>
+              <div className="roadmap-item">
+                <strong>Mock Interview Rounds</strong>
+                <p>Practice response framing and confidence.</p>
+              </div>
+              <div className="roadmap-item">
+                <strong>Performance Review</strong>
+                <p>Track weak areas and improve weekly.</p>
+              </div>
+            </div>
+          </div>
+      </section>
     </main>
   );
 }
