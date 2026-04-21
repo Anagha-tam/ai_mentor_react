@@ -2121,3 +2121,86 @@
     padding: 8px 10px;
   }
 }
+
+/* Study Material Integration Styles */
+.session-progress-strip {
+  background: rgba(255, 255, 255, 0.9);
+  backdrop-filter: blur(8px);
+  border: 1px solid rgba(132, 147, 186, 0.2);
+  border-radius: 12px;
+  padding: 10px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  box-shadow: 0 4px 12px rgba(16, 42, 67, 0.05);
+}
+
+.progress-info {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 12px;
+}
+
+.topic-name {
+  font-size: 13px;
+  font-weight: 600;
+  color: #1a1a2e;
+}
+
+.topic-sub {
+  font-size: 11px;
+  color: #555;
+  font-style: italic;
+}
+
+.progress-bar-rail {
+  height: 4px;
+  background: #e2e8f0;
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.progress-bar-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #3b82f6, #6366f1);
+  transition: width 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Roadmap enhancements */
+.roadmap-topics {
+  list-style: none;
+  padding: 8px 0 0 16px;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.roadmap-topics li {
+  font-size: 12px;
+  color: #94a3b8;
+  padding-left: 12px;
+  position: relative;
+}
+
+.roadmap-topics li::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 4px;
+  height: 4px;
+  background: #cbd5e1;
+  border-radius: 50%;
+}
+
+.roadmap-topics li.topic-done {
+  color: #475569;
+  font-weight: 500;
+}
+
+.roadmap-topics li.topic-done::before {
+  background: #10b981;
+}

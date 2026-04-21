@@ -143,6 +143,7 @@ function App() {
   const [candidateLoading, setCandidateLoading] = useState(false);
   const [candidateError, setCandidateError] = useState("");
   const [selectedCandidateEmail, setSelectedCandidateEmail] = useState("");
+  const [studyProgress, setStudyProgress] = useState(null);
 
   const socketRef = useRef(null);
   const livekitRoomRef = useRef(null);
@@ -229,6 +230,18 @@ function App() {
         entranceExam: profile.entranceExam || "JEE",
       });
       setOnboardingCompleted(Boolean(profile.onboardingCompleted));
+      
+      if (profile.onboardingCompleted) {
+        try {
+          const studyPayload = await requestJsonWithFallback("/data/study-progress", {
+            headers: { Authorization: `Bearer ${jwtToken}` },
+          });
+          setStudyProgress(studyPayload?.data || null);
+        } catch {
+          // Study content not mandatory for login
+        }
+      }
+
       return profile;
     } catch (error) {
       setProfileError(error.message || "Failed to load profile.");
@@ -1484,6 +1497,7 @@ function App() {
         });
         setOnboardingCompleted(false);
         setMessages([]);
+        setStudyProgress(null);
       }}
       sessionTimer={sessionTimer}
       avatarContainerRef={avatarContainerRef}
@@ -1518,6 +1532,7 @@ function App() {
       onCloseAssessment={() => {
         setAssessmentModal((prev) => ({ ...prev, open: false }));
       }}
+      studyProgress={studyProgress}
     />
   );
 }

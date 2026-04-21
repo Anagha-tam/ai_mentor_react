@@ -33,6 +33,7 @@ export function CandidateSessionPage({
   onAssessmentAnswer,
   onSubmitAssessment,
   onCloseAssessment,
+  studyProgress,
 }) {
   const [currentView, setCurrentView] = useState("chat");
   if (sessionEndedScreen) {
@@ -99,12 +100,30 @@ export function CandidateSessionPage({
             <div className="dot-pulse" />
             Live <span className="session-timer">{sessionTimer}</span>
           </div>
-          <div className="topbar-right">
-            <button className="icon-btn" onClick={interruptAi}>Interrupt</button>
-            <button className="icon-btn danger" onClick={disconnectAndLogout}>Logout</button>
+            <div className="topbar-right">
+              <button className="icon-btn" onClick={interruptAi}>Interrupt</button>
+              <button className="icon-btn danger" onClick={disconnectAndLogout}>Logout</button>
+            </div>
           </div>
-        </div>
-        <div className={`main-content anagha-layout ${currentView === "chat" ? "" : "view-hidden"}`}>
+          {studyProgress && (
+            <div className="session-progress-strip">
+              <div className="progress-info">
+                <span className="topic-name">
+                  Chapter {studyProgress.currentChapterIndex + 1}: {studyProgress.studyMaterialId?.chapters?.[studyProgress.currentChapterIndex]?.chapterTitle || "Loading..."}
+                </span>
+                <span className="topic-sub">
+                  Topic: {studyProgress.studyMaterialId?.chapters?.[studyProgress.currentChapterIndex]?.topics?.[studyProgress.currentTopicIndex]?.title || "Loading..."}
+                </span>
+              </div>
+              <div className="progress-bar-rail">
+                <div 
+                  className="progress-bar-fill" 
+                  style={{ width: `${Math.round(((studyProgress.currentTopicIndex + 1) / (studyProgress.studyMaterialId?.chapters?.[studyProgress.currentChapterIndex]?.topics?.length || 1)) * 100)}%` }} 
+                />
+              </div>
+            </div>
+          )}
+          <div className={`main-content anagha-layout ${currentView === "chat" ? "" : "view-hidden"}`}>
           <div className="left-stack">
             <div className="video-card">
               <div className="video-inner">
@@ -218,25 +237,34 @@ export function CandidateSessionPage({
         <div className={`alt-view ${currentView === "roadmap" ? "" : "view-hidden"}`}>
             <div className="alt-header">
               <h2>Roadmap</h2>
-              <span>Interview prep plan</span>
+              <span>{studyProgress?.studyMaterialId?.subject || "Interview prep"} plan</span>
             </div>
             <div className="roadmap-list">
-              <div className="roadmap-item done">
-                <strong>Foundation Revision</strong>
-                <p>Core concepts and quick formula recap.</p>
-              </div>
-              <div className="roadmap-item active">
-                <strong>Guided Doubt Sessions</strong>
-                <p>Use chat/voice to clear topic-wise doubts.</p>
-              </div>
-              <div className="roadmap-item">
-                <strong>Mock Interview Rounds</strong>
-                <p>Practice response framing and confidence.</p>
-              </div>
-              <div className="roadmap-item">
-                <strong>Performance Review</strong>
-                <p>Track weak areas and improve weekly.</p>
-              </div>
+              {studyProgress?.studyMaterialId?.chapters?.map((chapter, cIdx) => {
+                const isDone = cIdx < studyProgress.currentChapterIndex;
+                const isActive = cIdx === studyProgress.currentChapterIndex;
+                return (
+                  <div key={chapter._id || cIdx} className={`roadmap-item ${isDone ? "done" : isActive ? "active" : ""}`}>
+                    <strong>Chapter {cIdx + 1}: {chapter.chapterTitle}</strong>
+                    <p>{chapter.topics?.length || 0} topics included.</p>
+                    {isActive && (
+                      <ul className="roadmap-topics">
+                        {chapter.topics?.map((topic, tIdx) => (
+                          <li key={tIdx} className={tIdx <= studyProgress.currentTopicIndex ? "topic-done" : ""}>
+                            {tIdx === studyProgress.currentTopicIndex ? "→ " : ""}{topic.title}
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+                  </div>
+                );
+              })}
+              {!studyProgress && (
+                <div className="roadmap-item active">
+                  <strong>Standard Prep</strong>
+                  <p>Follow the AI mentor's guided questions.</p>
+                </div>
+              )}
             </div>
           </div>
         {assessmentModal?.open ? (
