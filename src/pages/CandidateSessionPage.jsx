@@ -105,24 +105,6 @@ export function CandidateSessionPage({
               <button className="icon-btn danger" onClick={disconnectAndLogout}>Logout</button>
             </div>
           </div>
-          {studyProgress && (
-            <div className="session-progress-strip">
-              <div className="progress-info">
-                <span className="topic-name">
-                  Chapter {studyProgress.currentChapterIndex + 1}: {studyProgress.studyMaterialId?.chapters?.[studyProgress.currentChapterIndex]?.chapterTitle || "Loading..."}
-                </span>
-                <span className="topic-sub">
-                  Topic: {studyProgress.studyMaterialId?.chapters?.[studyProgress.currentChapterIndex]?.topics?.[studyProgress.currentTopicIndex]?.title || "Loading..."}
-                </span>
-              </div>
-              <div className="progress-bar-rail">
-                <div 
-                  className="progress-bar-fill" 
-                  style={{ width: `${Math.round(((studyProgress.currentTopicIndex + 1) / (studyProgress.studyMaterialId?.chapters?.[studyProgress.currentChapterIndex]?.topics?.length || 1)) * 100)}%` }} 
-                />
-              </div>
-            </div>
-          )}
           <div className={`main-content anagha-layout ${currentView === "chat" ? "" : "view-hidden"}`}>
           <div className="left-stack">
             <div className="video-card">
@@ -208,6 +190,40 @@ export function CandidateSessionPage({
             <p className="status-note">Tip: Hold the Talk button or Space to speak, then release to send.</p>
             {liveSttText ? <p className="status-note">{liveSttText}</p> : null}
             {socketError ? <p className="error-note">{socketError}</p> : null}
+          </div>
+
+          <div className="study-roadmap-sidebar">
+            <div className="sidebar-header">
+              <h3>Study Plan</h3>
+              <span>{studyProgress?.studyMaterialId?.subject}</span>
+            </div>
+            <div className="sidebar-content">
+              {studyProgress?.studyMaterialId?.chapters?.map((chapter, cIdx) => {
+                const isChapterActive = cIdx === studyProgress.currentChapterIndex;
+                const isChapterDone = cIdx < studyProgress.currentChapterIndex;
+
+                return (
+                  <div key={cIdx} className={`sidebar-chapter ${isChapterActive ? "active" : ""} ${isChapterDone ? "done" : ""}`}>
+                    <div className="sidebar-chapter-title">{chapter.chapterTitle}</div>
+                    <div className="sidebar-topics-list">
+                      {chapter.topics?.map((topic, tIdx) => {
+                        const isTopicActive = isChapterActive && tIdx === studyProgress.currentTopicIndex;
+                        const isTopicDone = isChapterDone || (isChapterActive && tIdx < studyProgress.currentTopicIndex);
+
+                        return (
+                          <div key={tIdx} className={`sidebar-topic-item ${isTopicActive ? "active" : ""} ${isTopicDone ? "done" : ""}`}>
+                            <div className="topic-status-icon">
+                              {isTopicDone ? "✓" : isTopicActive ? "●" : "○"}
+                            </div>
+                            <div className="topic-title">{topic.title}</div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
           </div>
         </div>
         <div className={`alt-view ${currentView === "dashboard" ? "" : "view-hidden"}`}>

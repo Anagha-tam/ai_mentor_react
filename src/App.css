@@ -1168,7 +1168,7 @@
 }
 
 .main-content.anagha-layout {
-  grid-template-columns: 440px minmax(0, 1fr);
+  grid-template-columns: 440px minmax(0, 1fr) 280px;
 }
 
 .left-stack {
@@ -2122,85 +2122,128 @@
   }
 }
 
-/* Study Material Integration Styles */
-.session-progress-strip {
-  background: rgba(255, 255, 255, 0.9);
-  backdrop-filter: blur(8px);
-  border: 1px solid rgba(132, 147, 186, 0.2);
-  border-radius: 12px;
-  padding: 10px 16px;
+/* Study Material Sidebar Styles */
+.study-roadmap-sidebar {
+  background: rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(153, 167, 208, 0.25);
+  border-radius: 20px;
   display: flex;
   flex-direction: column;
-  gap: 6px;
-  box-shadow: 0 4px 12px rgba(16, 42, 67, 0.05);
+  min-height: 0;
+  overflow: hidden;
+  box-shadow: 0 12px 32px rgba(41, 60, 115, 0.08);
 }
 
-.progress-info {
+.sidebar-header {
+  padding: 14px 16px;
+  border-bottom: 1px solid rgba(171, 182, 214, 0.2);
   display: flex;
   justify-content: space-between;
-  align-items: baseline;
-  gap: 12px;
+  align-items: center;
 }
 
-.topic-name {
-  font-size: 13px;
-  font-weight: 600;
-  color: #1a1a2e;
-}
-
-.topic-sub {
-  font-size: 11px;
-  color: #555;
-  font-style: italic;
-}
-
-.progress-bar-rail {
-  height: 4px;
-  background: #e2e8f0;
-  border-radius: 2px;
-  overflow: hidden;
-}
-
-.progress-bar-fill {
-  height: 100%;
-  background: linear-gradient(90deg, #3b82f6, #6366f1);
-  transition: width 0.6s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-/* Roadmap enhancements */
-.roadmap-topics {
-  list-style: none;
-  padding: 8px 0 0 16px;
+.sidebar-header h3 {
   margin: 0;
+  font-size: 14px;
+  color: #1a1a2e;
+  font-weight: 600;
+}
+
+.sidebar-content {
+  flex: 1;
+  overflow-y: auto;
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.sidebar-chapter {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.sidebar-chapter-title {
+  font-size: 12px;
+  font-weight: 700;
+  color: #4a5568;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  padding-left: 4px;
+  border-left: 2px solid #cbd5e0;
+}
+
+.sidebar-chapter.active .sidebar-chapter-title {
+  border-left-color: #2f6ef6;
+  color: #2f6ef6;
+}
+
+.sidebar-topics-list {
   display: flex;
   flex-direction: column;
   gap: 4px;
 }
 
-.roadmap-topics li {
-  font-size: 12px;
-  color: #94a3b8;
-  padding-left: 12px;
+.sidebar-topic-item {
+  padding: 8px 10px;
+  border-radius: 10px;
+  font-size: 13px;
+  color: #64748b;
   position: relative;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
 }
 
-.roadmap-topics li::before {
-  content: "";
-  position: absolute;
-  left: 0;
-  top: 50%;
-  transform: translateY(-50%);
-  width: 4px;
-  height: 4px;
-  background: #cbd5e1;
-  border-radius: 50%;
-}
-
-.roadmap-topics li.topic-done {
+.sidebar-topic-item.done {
   color: #475569;
-  font-weight: 500;
 }
 
-.roadmap-topics li.topic-done::before {
-  background: #10b981;
+.sidebar-topic-item.active {
+  background: #eff4ff;
+  color: #2f6ef6;
+  font-weight: 600;
+  box-shadow: 0 4px 12px rgba(47, 110, 246, 0.08);
+}
+
+.topic-status-icon {
+  width: 14px;
+  height: 14px;
+  margin-top: 2px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.sidebar-topic-item.done .topic-status-icon {
+  color: #10b981;
+}
+
+.sidebar-topic-item.active .topic-status-icon {
+  animation: pulse-dot 1.5s infinite;
+}
+
+@keyframes pulse-dot {
+  0% { transform: scale(1); opacity: 1; }
+  50% { transform: scale(1.3); opacity: 0.5; }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+@media (max-width: 1400px) {
+  .main-content.anagha-layout {
+    grid-template-columns: 400px minmax(0, 1fr) 240px;
+  }
+}
+
+@media (max-width: 1200px) {
+  .main-content.anagha-layout {
+    grid-template-columns: 1fr;
+  }
+  .study-roadmap-sidebar {
+    display: none;
+  }
 }
