@@ -172,6 +172,8 @@ function App() {
   const completionReportedRef = useRef(false);
   const completionEligibleRef = useRef(false);
   const pendingAutoEndRef = useRef(false);
+  const studyProgressRef = useRef(null);
+  const aiSilencedRef = useRef(false);
 
   const isLoggedIn = Boolean(token);
   const isProfileComplete = useMemo(() => onboardingCompleted === true, [onboardingCompleted]);
@@ -474,6 +476,35 @@ function App() {
   }, []);
 
   useEffect(() => {
+    studyProgressRef.current = studyProgress;
+  }, [studyProgress]);
+
+  useEffect(() => {
+    const shouldSilence = Boolean(assessmentLoading || assessmentModal.open);
+    aiSilencedRef.current = shouldSilence;
+    const allAudioEls = [...avatarAudioElsRef.current, ...pendingAvatarAudioElsRef.current];
+    for (const audioEl of allAudioEls) {
+      try {
+        audioEl.muted = shouldSilence;
+        if (shouldSilence) audioEl.pause();
+        else void audioEl.play().catch(() => {});
+      } catch {
+        // no-op
+      }
+    }
+    if (shouldSilence) {
+      try {
+        const payload = new TextEncoder().encode(JSON.stringify({ type: "client_interrupt", reason: "assessment" }));
+        void livekitRoomRef.current?.localParticipant
+          ?.publishData?.(payload, { reliable: true, topic: "mentor.client.interrupt" })
+          .catch(() => {});
+      } catch {
+        // no-op
+      }
+    }
+  }, [assessmentLoading, assessmentModal.open]);
+
+  useEffect(() => {
     const stopDetector = () => {
       if (detectorIntervalRef.current) {
         clearInterval(detectorIntervalRef.current);
@@ -724,9 +755,10 @@ function App() {
           const el = track.attach();
           el.autoplay = false;
           el.style.display = "none";
+          el.muted = aiSilencedRef.current;
           document.body.appendChild(el);
           avatarAudioElsRef.current.push(el);
-          if (avatarVideoReadyRef.current) {
+          if (avatarVideoReadyRef.current && !aiSilencedRef.current) {
             void el.play().catch(() => {});
           } else {
             pendingAvatarAudioElsRef.current.push(el);
@@ -810,19 +842,36 @@ function App() {
 
           if (topic === "mentor.assessment") {
             if (parsed?.type !== "assessment_start") return;
-            const questions = Array.isArray(parsed?.questions) ? parsed.questions : [];
-            setAssessmentModal({
-              open: true,
-              title: String(parsed?.title || "Assessment"),
-              questions,
-            });
-            setAssessmentAnswers({});
-            setAssessmentSubmitted(false);
+            const chapterIndex = Number(studyProgressRef.current?.currentChapterIndex ?? 0);
             appendMessage({
               id: `sys-assessment-${Date.now()}`,
               role: "system",
-              text: "Assessment requested. Please complete the MCQ popup.",
+              text: "Assessment requested. Generating chapter questions...",
             });
+            setAssessmentSubmitted(false);
+            setAssessmentAnswers({});
+            setAssessmentLoading(true);
+            void (async () => {
+              try {
+                const apiPayload = await requestJsonWithFallback(
+                  `/data/study/chapters/${chapterIndex}/assessment`,
+                  { headers: { Authorization: `Bearer ${jwtToken}` } },
+                );
+                if (apiPayload?.success) {
+                  setAssessmentModal({
+                    open: true,
+                    title: apiPayload.title,
+                    questions: apiPayload.questions,
+                    chapterIndex,
+                    type: "chapter",
+                  });
+                }
+              } catch (error) {
+                setSocketError(error.message || "Failed to load chapter assessment.");
+              } finally {
+                setAssessmentLoading(false);
+              }
+            })();
             return;
           }
 
