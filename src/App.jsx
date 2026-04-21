@@ -39,6 +39,7 @@ const AVATAR_LOADER_STATUS = [
   "Loading your AI mentor session details...",
   "AI Mentor is ready!",
 ];
+const AVATAR_SETUP_MAX_RETRIES = 3;
 
 async function requestJsonWithFallback(path, options = {}) {
   const baseCandidates = [API_BASE_URL];
@@ -807,20 +808,46 @@ function App() {
       setSocketError(error.message || "Avatar setup failed.");
       setAvatarLoading(false);
       avatarBootstrappedRef.current = false;
+      throw error;
+    }
+  };
+
+  const setupAvatarRoomWithRetry = async (jwtToken) => {
+    let lastError = null;
+    for (let attempt = 1; attempt <= AVATAR_SETUP_MAX_RETRIES; attempt += 1) {
+      try {
+        await setupAvatarRoom(jwtToken);
+        return;
+      } catch (error) {
+        lastError = error;
+        await new Promise((resolve) => setTimeout(resolve, 400 * attempt));
+      }
+    }
+    if (lastError) {
+      setSocketError(lastError.message || "Avatar setup failed.");
     }
   };
 
   const connectSocket = (jwtToken) => {
+    if (socketRef.current) {
+      socketRef.current.disconnect();
+      socketRef.current = null;
+    }
     const socket = io(SOCKET_CONFIG.url, {
       transports: ["websocket"],
       path: SOCKET_CONFIG.path,
       auth: { token: jwtToken },
+      reconnection: true,
+      reconnectionAttempts: Infinity,
+      reconnectionDelay: 500,
+      reconnectionDelayMax: 3000,
+      timeout: 10000,
     });
 
     socket.on("connect", () => {
       setStatus("connected");
       setSocketError("");
-      setupAvatarRoom(jwtToken);
+      void setupAvatarRoomWithRetry(jwtToken);
     });
 
     socket.on("connect_error", (error) => {
@@ -840,8 +867,24 @@ function App() {
       });
     });
 
-    socket.on("disconnect", () => {
+    socket.on("conversation_history", ({ messages: historyMessages }) => {
+      if (!Array.isArray(historyMessages)) return;
+      const hydrated = historyMessages
+        .filter((message) => message && typeof message.text === "string" && message.text.trim())
+        .map((message, index) => ({
+          id: `history-${message.id || index}`,
+          role: message.role === "assistant" ? "ai" : message.role === "user" ? "user" : "system",
+          text: String(message.text || "").trim(),
+        }));
+      if (hydrated.length === 0) return;
+      setMessages(hydrated);
+    });
+
+    socket.on("disconnect", (reason) => {
       setStatus("offline");
+      if (reason !== "io client disconnect") {
+        setSocketError("Connection lost. Reconnecting...");
+      }
     });
 
     socketRef.current = socket;
