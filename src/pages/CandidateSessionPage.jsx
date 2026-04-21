@@ -39,6 +39,13 @@ export function CandidateSessionPage({
   onTakeChapterAssessment,
 }) {
   const [currentView, setCurrentView] = useState("chat");
+  const [collapsedChapters, setCollapsedChapters] = useState({});
+  const toggleChapterCollapse = (chapterIndex) => {
+    setCollapsedChapters((prev) => ({
+      ...prev,
+      [chapterIndex]: !prev[chapterIndex],
+    }));
+  };
   if (sessionEndedScreen) {
     return (
       <main className="interview-root">
@@ -204,11 +211,26 @@ export function CandidateSessionPage({
               {studyProgress?.studyMaterialId?.chapters?.map((chapter, cIdx) => {
                 const isChapterActive = cIdx === studyProgress.currentChapterIndex;
                 const isChapterDone = cIdx < studyProgress.currentChapterIndex;
+                const isCollapsed = Boolean(collapsedChapters[cIdx]);
 
                 return (
                   <div key={cIdx} className={`sidebar-chapter ${isChapterActive ? "active" : ""} ${isChapterDone ? "done" : ""}`}>
-                    <div className="sidebar-chapter-title">
-                      <span>{chapter.chapterTitle}</span>
+                    <div
+                      className="sidebar-chapter-title"
+                      role="button"
+                      tabIndex={0}
+                      onClick={() => toggleChapterCollapse(cIdx)}
+                      onKeyDown={(event) => {
+                        if (event.key === "Enter" || event.key === " ") {
+                          event.preventDefault();
+                          toggleChapterCollapse(cIdx);
+                        }
+                      }}
+                    >
+                      <div className="chapter-title-main">
+                        <span>{chapter.chapterTitle}</span>
+                      </div>
+                      <span className="chapter-collapse-icon">{isCollapsed ? "▸" : "▾"}</span>
                       <div className="chapter-actions">
                         {(() => {
                           const status = assessmentStatuses.find((s) => s.chapterIndex === cIdx);
@@ -226,7 +248,7 @@ export function CandidateSessionPage({
                         })()}
                       </div>
                     </div>
-                    <div className="sidebar-topics-list">
+                    <div className={`sidebar-topics-list ${isCollapsed ? "collapsed" : ""}`}>
                       {chapter.topics?.map((topic, tIdx) => {
                         const isTopicActive = isChapterActive && tIdx === studyProgress.currentTopicIndex;
                         const isTopicDone = isChapterDone || (isChapterActive && tIdx < studyProgress.currentTopicIndex);
