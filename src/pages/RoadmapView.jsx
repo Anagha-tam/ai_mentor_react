@@ -159,10 +159,10 @@ function PlanCard({ plan }) {
               <span className="text-xs text-brand-navy/35 font-medium">
                 {plan.weeks?.length ?? 0} weeks
               </span>
-              {plan.uploadedAt && (
+              {(plan.createdAt || plan.uploadedAt) && (
                 <span className="flex items-center gap-1 text-xs text-brand-navy/30">
                   <CalendarDays size={9} />
-                  {formatDate(plan.uploadedAt)}
+                  {formatDate(plan.createdAt || plan.uploadedAt)}
                 </span>
               )}
             </div>

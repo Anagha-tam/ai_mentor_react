@@ -128,7 +128,7 @@ export const getProfileData = async () => {
 
 /** Fetch all study plans */
 export const getStudyPlans = async () => {
-  const response = await fetch(`${BASE_URL}/data/study-plans`, {
+  const response = await fetch(`${BASE_URL}/study-plans`, {
     method: 'GET',
     headers: getHeaders(true),
   });
@@ -137,7 +137,7 @@ export const getStudyPlans = async () => {
 
 /** Fetch all study materials */
 export const getStudyMaterials = async () => {
-  const response = await fetch(`${BASE_URL}/data/study-materials`, {
+  const response = await fetch(`${BASE_URL}/study-materials`, {
     method: 'GET',
     headers: getHeaders(true),
   });
@@ -156,7 +156,7 @@ export const getReminders = async () => {
 /** Download a study material PDF by ID */
 export const downloadMaterial = async (id) => {
   const token = localStorage.getItem('token');
-  const response = await fetch(`${BASE_URL}/data/download-material/${id}`, {
+  const response = await fetch(`${BASE_URL}/study-materials/${id}/download`, {
     method: 'GET',
     headers: token ? { Authorization: `Bearer ${token}` } : {},
   });
