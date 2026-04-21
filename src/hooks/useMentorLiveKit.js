@@ -1,11 +1,11 @@
-import { useEffect, useRef, useState, useMemo } from 'react';
+import { useEffect, useRef, useState, useMemo, useCallback } from 'react';
 import {
   useLocalParticipant,
   useVoiceAssistant,
   useRoomContext,
   useTracks,
 } from '@livekit/components-react';
-import { Track } from 'livekit-client';
+import { RoomEvent, Track } from 'livekit-client';
 
 /**
  * LiveKit integration hook for the AI Mentor voice agent.
@@ -25,8 +25,19 @@ export const useMentorLiveKit = () => {
   const [isUserSpeaking, setIsUserSpeaking] = useState(false);
   const [connectionQuality, setConnectionQuality] = useState('good');
   const [hasRemoteAudioTrack, setHasRemoteAudioTrack] = useState(false);
+  const [dataTranscripts, setDataTranscripts] = useState([]);
 
   const audioTrackRef = useRef(null);
+
+  const upsertTranscript = useCallback((entry) => {
+    setDataTranscripts((prev) => {
+      const idx = prev.findIndex((m) => m.id === entry.id);
+      if (idx === -1) return [...prev, entry];
+      const next = prev.slice();
+      next[idx] = { ...prev[idx], ...entry };
+      return next;
+    });
+  }, []);
 
   const tracks = useTracks(
     [{ source: Track.Source.Microphone, withPlaceholder: false }],
@@ -93,6 +104,54 @@ export const useMentorLiveKit = () => {
     };
   }, [room, localParticipant]);
 
+  // Worker data-channel transcripts (mentor.user.transcript / mentor.ai.transcript)
+  useEffect(() => {
+    if (!room) return;
+
+    const handleDataReceived = (payload, _participant, _kind, topic) => {
+      try {
+        const raw = new TextDecoder().decode(payload);
+        const parsed = JSON.parse(raw);
+
+        if (topic === 'mentor.user.transcript') {
+          if (parsed?.type !== 'user_transcript' || !parsed?.id) return;
+          upsertTranscript({
+            id: `user-data-${parsed.id}`,
+            role: 'user',
+            text: parsed.text || '',
+            timestamp: Date.now(),
+            source: 'voice',
+          });
+          return;
+        }
+
+        if (topic === 'mentor.ai.transcript') {
+          if (parsed?.type !== 'assistant_transcript' || !parsed?.id) return;
+          const displayText =
+            parsed.interrupted && parsed.text
+              ? `${parsed.text} (interrupted)`
+              : parsed.interrupted
+                ? '(interrupted)'
+                : parsed.text || '';
+          upsertTranscript({
+            id: `ai-data-${parsed.id}`,
+            role: 'agent',
+            text: displayText,
+            timestamp: Date.now(),
+            source: 'voice',
+          });
+        }
+      } catch {
+        // Ignore malformed payloads.
+      }
+    };
+
+    room.on(RoomEvent.DataReceived, handleDataReceived);
+    return () => {
+      room.off(RoomEvent.DataReceived, handleDataReceived);
+    };
+  }, [room, upsertTranscript]);
+
   // Connection quality monitoring
   useEffect(() => {
     if (!room) return;
@@ -126,5 +185,6 @@ export const useMentorLiveKit = () => {
     localParticipant,
     localMicTrack,
     room,
+    dataTranscripts,
   };
 };

@@ -1,7 +1,6 @@
 import { useState, useRef, useEffect, useMemo } from 'react';
-import { useLocalParticipant, useSessionMessages } from '@livekit/components-react';
-import { Send, Mic, Keyboard, Bot } from 'lucide-react';
-import { useSocket } from '../hooks/useSocket';
+import { useLocalParticipant, useSessionMessages, useRoomContext } from '@livekit/components-react';
+import { Send, Mic, MicOff, Keyboard, Bot } from 'lucide-react';
 import profileImg from '../assets/profile.png';
 
 const SUGGESTIONS = [
@@ -9,19 +8,40 @@ const SUGGESTIONS = [
   "Help me with integration by parts",
 ];
 
-const ChatPanel = ({ agentState, user }) => {
+const ChatPanel = ({
+  agentState,
+  user,
+  dataTranscripts = [],
+  conversationHistory = [],
+  sessionReady,
+  socketError,
+  isTalking = false,
+  onTalkStart,
+  onTalkEnd,
+}) => {
   const [inputText, setInputText] = useState('');
   const scrollRef = useRef(null);
   const { messages: sessionMessages, send, isSending } = useSessionMessages();
   const { localParticipant } = useLocalParticipant();
-  const [socketMessage, setSocketMessage] = useState([]);
-  const socketRef = useSocket(user?.id || user?.email);
+  const room = useRoomContext();
+  const [localMessages, setLocalMessages] = useState([]);
 
   const displayMessages = useMemo(() => {
     const localId = localParticipant?.identity;
     const liveKitMsgs = sessionMessages.map((msg) => mapSessionMessageToDisplay(msg, localId));
-    return [...liveKitMsgs, ...socketMessage].sort((a, b) => a.timestamp - b.timestamp);
-  }, [sessionMessages, localParticipant, socketMessage]);
+
+    // Merge all sources and de-duplicate by id. The worker's data-channel
+    // transcripts (dataTranscripts) are authoritative for voice text —
+    // they arrive immediately rather than being synced to playout — so we
+    // prefer them over any overlapping LiveKit built-in transcripts.
+    const byId = new Map();
+    for (const msg of conversationHistory) byId.set(msg.id, msg);
+    for (const msg of liveKitMsgs) byId.set(msg.id, msg);
+    for (const msg of dataTranscripts) byId.set(msg.id, msg);
+    for (const msg of localMessages) byId.set(msg.id, msg);
+
+    return [...byId.values()].sort((a, b) => a.timestamp - b.timestamp);
+  }, [sessionMessages, localParticipant, dataTranscripts, conversationHistory, localMessages]);
 
   useEffect(() => {
     if (scrollRef.current) {
@@ -29,30 +49,29 @@ const ChatPanel = ({ agentState, user }) => {
     }
   }, [displayMessages]);
 
-  useEffect(() => {
-    const socket = socketRef.current;
-    socket?.on('chat:message', (msg) => {
-      setSocketMessage(prev => [...prev, {
-        id: `socket-${Date.now()}`,
-        role: msg.from === (user?.id || user?.email) ? 'user' : 'agent',
-        text: msg.text,
-        timestamp: msg.timestamp,
-        source: 'text',
-      }]);
-    });
-    return () => socket?.off('chat:message');
-  }, [user]);
-
   const handleSend = async (text) => {
     const trimmed = (text ?? inputText).trim();
     if (!trimmed || isSending) return;
     setInputText('');
-    socketRef.current?.emit('chat:message', {
+
+    const localEntry = {
+      id: `user-text-${Date.now()}`,
+      role: 'user',
       text: trimmed,
-      roomId: `room-${user?.id || user?.email}`,
-    });
+      timestamp: Date.now(),
+      source: 'text',
+    };
+    setLocalMessages((prev) => [...prev, localEntry]);
+
     try {
-      await send(trimmed);
+      // Prefer LiveKit's lk.chat topic — this is what the backend mentor
+      // worker listens on for text input. Fall back to the component lib's
+      // send() if the low-level API isn't available.
+      if (room?.localParticipant?.sendText) {
+        await room.localParticipant.sendText(trimmed, { topic: 'lk.chat' });
+      } else {
+        await send(trimmed);
+      }
     } catch (error) {
       console.error('Failed to send chat message:', error);
       if (!text) setInputText(trimmed);
@@ -125,6 +144,9 @@ const ChatPanel = ({ agentState, user }) => {
 
       {/* Floating input */}
       <div className="px-4 pb-4 pt-2">
+        <p className="text-[10px] text-brand-navy/35 font-medium text-center mb-1.5 select-none">
+          Hold <span className="font-bold text-brand-navy/55">Space</span> or the mic button to talk
+        </p>
         <form
           onSubmit={(e) => { e.preventDefault(); handleSend(); }}
           className="flex items-center gap-2.5 glass-strong rounded-2xl px-4 py-2.5
@@ -132,6 +154,30 @@ const ChatPanel = ({ agentState, user }) => {
                      focus-within:shadow-[0_4px_24px_rgba(59,71,194,0.18)]
                      focus-within:border-brand-orange/30 transition-all duration-200"
         >
+          <button
+            type="button"
+            aria-label={isTalking ? 'Release to stop talking' : 'Hold to talk'}
+            onPointerDown={(e) => {
+              try { e.currentTarget.setPointerCapture?.(e.pointerId); } catch {}
+              onTalkStart?.();
+            }}
+            onPointerUp={(e) => {
+              try { e.currentTarget.releasePointerCapture?.(e.pointerId); } catch {}
+              onTalkEnd?.();
+            }}
+            onPointerCancel={() => onTalkEnd?.()}
+            onPointerLeave={(e) => {
+              if (e.buttons === 0) return;
+              onTalkEnd?.();
+            }}
+            className={`w-8 h-8 rounded-xl flex items-center justify-center shrink-0 transition-all duration-150 select-none ${
+              isTalking
+                ? 'bg-gradient-to-br from-red-500 to-rose-500 text-white scale-105 shadow-[0_2px_12px_rgba(244,63,94,0.40)] animate-pulse'
+                : 'bg-brand-navy/8 text-brand-navy/55 hover:bg-brand-navy/12'
+            }`}
+          >
+            {isTalking ? <Mic className="w-3.5 h-3.5" /> : <MicOff className="w-3.5 h-3.5" />}
+          </button>
           <input
             type="text"
             value={inputText}

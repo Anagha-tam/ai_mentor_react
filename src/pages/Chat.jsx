@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useMemo, useEffect, useState } from 'react';
+import React, { useMemo, useEffect, useState, useRef } from 'react';
 import {
   useSession,
   useConnectionState,
@@ -8,12 +8,14 @@ import {
   SessionProvider,
   RoomAudioRenderer,
 } from '@livekit/components-react';
-import { ConnectionState, TokenSource } from 'livekit-client';
+import { ConnectionState } from 'livekit-client';
 import { Volume2, LayoutDashboard, Zap, Beaker, Calculator, Dna, Clock, Timer, Play, Pause } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { AgentSessionProvider } from '../components/agent-session-provider';
 
 import { useMentorLiveKit } from '../hooks/useMentorLiveKit';
+import { useAvatarTokenSource, endAvatarSession } from '../hooks/useAvatarTokenSource';
+import { useMentorSocket } from '../hooks/useMentorSocket';
+import { usePushToTalk } from '../hooks/usePushToTalk';
 import ChatPanel from '../components/ChatPanel';
 import AvatarPanel from '../components/AvatarPanel';
 import Sidebar from '../components/Sidebar';
@@ -21,10 +23,10 @@ import RoadmapView from './RoadmapView';
 
 import '@livekit/components-styles';
 
-const getEnv = (key, fallback = '') => {
-  const v = import.meta.env[`VITE_${key}`];
-  return v ?? fallback;
-};
+const MENTOR_API_BASE_URL =
+  import.meta.env.VITE_MENTOR_API_URL ||
+  import.meta.env.VITE_API_BASE_URL ||
+  'http://localhost:4000';
 
 function AudioPermissionModal() {
   const room = useRoomContext();
@@ -86,29 +88,47 @@ function makeUniqueRoomName(prefix) {
   return `${base}-${Date.now()}-${Math.random().toString(36).slice(2, 11)}`;
 }
 
-export default function ChatPage({ user, onLogout, sandboxId, roomName }) {
-  const resolvedSandboxId = sandboxId || getEnv('SANDBOX_ID', 'aimentor-1t8exu');
-  const resolvedAgentName = getEnv('AGENT_NAME', 'ai-mentor-node');
-
+export default function ChatPage({ user, onLogout, roomName }) {
   const resolvedRoomName = useMemo(() => roomName || makeUniqueRoomName("mentor"), [roomName]);
 
-  const tokenSource = useMemo(
-    () => TokenSource.sandboxTokenServer(resolvedSandboxId),
-    [resolvedSandboxId],
-  );
+  // Custom TokenSource: fetches credentials from ai_mentor_node backend's
+  // /avatar/bey/session endpoint (the backend handles LiveKit room creation
+  // + agent dispatch internally — we just consume the returned URL + token).
+  const tokenSource = useAvatarTokenSource(MENTOR_API_BASE_URL);
 
   const sessionOptions = useMemo(() => ({
     roomName: resolvedRoomName,
-    agentName: resolvedAgentName
-  }), [resolvedRoomName, resolvedAgentName]);
+  }), [resolvedRoomName]);
 
   const session = useSession(tokenSource, sessionOptions);
-  console.log("session", session);
 
+  // Socket.io to the mentor backend — surfaces conversation history and
+  // session-ready events so the ChatPanel can hydrate prior messages.
+  const { history: conversationHistory, sessionReady, error: socketError } =
+    useMentorSocket(MENTOR_API_BASE_URL);
+
+  const startedRef = useRef(false);
+  const pendingTeardownRef = useRef(null);
   useEffect(() => {
-    void session.start();
+    // If a teardown was scheduled (e.g. from a StrictMode fake unmount),
+    // cancel it — we're still here and the session is still valid.
+    if (pendingTeardownRef.current) {
+      clearTimeout(pendingTeardownRef.current);
+      pendingTeardownRef.current = null;
+    }
+    if (!startedRef.current) {
+      startedRef.current = true;
+      void session.start();
+    }
     return () => {
-      void session.end();
+      // Defer teardown so a StrictMode re-mount (which fires a fresh effect
+      // within the same tick) can cancel it before we kill the backend room.
+      pendingTeardownRef.current = setTimeout(() => {
+        pendingTeardownRef.current = null;
+        startedRef.current = false;
+        void session.end();
+        void endAvatarSession(MENTOR_API_BASE_URL);
+      }, 50);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -119,7 +139,13 @@ export default function ChatPage({ user, onLogout, sandboxId, roomName }) {
         <SessionProvider session={session}>
           <RoomAudioRenderer room={session?.room} />
           <AudioPermissionModal />
-          <MentorSessionLayout user={user} onLogout={onLogout} />
+          <MentorSessionLayout
+            user={user}
+            onLogout={onLogout}
+            conversationHistory={conversationHistory}
+            sessionReady={sessionReady}
+            socketError={socketError}
+          />
         </SessionProvider>
       </div>
 
@@ -135,11 +161,15 @@ export default function ChatPage({ user, onLogout, sandboxId, roomName }) {
   );
 }
 
-function MentorSessionLayout({ user, onLogout }) {
+function MentorSessionLayout({ user, onLogout, conversationHistory, sessionReady, socketError }) {
   const connectionState = useConnectionState();
   const isConnected = connectionState === ConnectionState.Connected;
 
-  const { agent, agentState, agentVideoTrack, isAgentSpeaking, isUserSpeaking } = useMentorLiveKit();
+  const { agent, agentState, agentVideoTrack, isAgentSpeaking, isUserSpeaking, dataTranscripts } = useMentorLiveKit();
+
+  // Hold Space (or a UI button) to talk: the mic is muted by default once
+  // connected and only enabled while the user is actively holding.
+  const { isTalking, beginHold, endHold } = usePushToTalk({ enabled: isConnected });
   const [isSidebarOpen] = React.useState(true);
   const [currentView, setCurrentView] = React.useState('chat');
 
@@ -192,7 +222,18 @@ function MentorSessionLayout({ user, onLogout }) {
 
                 {/* Right Panel: Chat Transcript */}
                 <div className="flex-1 bg-white shadow-sm z-10 rounded-2xl overflow-hidden border border-brand-navy/10">
-                  <ChatPanel agentState={agentState} user={user} onLogout={onLogout} />
+                  <ChatPanel
+                    agentState={agentState}
+                    user={user}
+                    onLogout={onLogout}
+                    dataTranscripts={dataTranscripts}
+                    conversationHistory={conversationHistory}
+                    sessionReady={sessionReady}
+                    socketError={socketError}
+                    isTalking={isTalking}
+                    onTalkStart={beginHold}
+                    onTalkEnd={endHold}
+                  />
                 </div>
               </div>
             )}
