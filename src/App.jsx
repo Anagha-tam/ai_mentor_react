@@ -39,7 +39,7 @@ const AVATAR_LOADER_STATUS = [
   "Loading your AI mentor session details...",
   "AI Mentor is ready!",
 ];
-const AVATAR_SETUP_MAX_RETRIES = 3;
+const AVATAR_SETUP_MAX_RETRIES = 1;
 
 async function requestJsonWithFallback(path, options = {}) {
   const baseCandidates = [API_BASE_URL];
@@ -915,7 +915,7 @@ function App() {
 
         const nextAttempt = avatarReconnectAttemptsRef.current + 1;
         avatarReconnectAttemptsRef.current = nextAttempt;
-        if (nextAttempt > 3) {
+        if (nextAttempt > 1) {
           setSocketError("Session disconnected repeatedly. Please logout and login again.");
           return;
         }
