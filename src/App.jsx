@@ -27,6 +27,7 @@ const SOCKET_CONFIG = (() => {
 })();
 const TOKEN_STORAGE_KEY = "ai_mentor_token";
 const ADMIN_TOKEN_STORAGE_KEY = "ai_mentor_admin_token";
+const AVATAR_SESSION_CACHE_KEY = "ai_mentor_avatar_session_cache";
 const AVATAR_LOADER_STEPS = [
   "Connecting to AI Mentor",
   "Checking microphone",
@@ -158,6 +159,7 @@ function App() {
   const avatarVideoReadyRef = useRef(false);
   const avatarAudioElsRef = useRef([]);
   const pendingAvatarAudioElsRef = useRef([]);
+  const pendingAvatarAudioTracksRef = useRef([]);
   const avatarReconnectTimerRef = useRef(null);
   const avatarReconnectAttemptsRef = useRef(0);
   const lastMergedUserMessageAtRef = useRef(0);
@@ -174,6 +176,8 @@ function App() {
   const pendingAutoEndRef = useRef(false);
   const studyProgressRef = useRef(null);
   const aiSilencedRef = useRef(false);
+  const audioUnlockedRef = useRef(false);
+  const avatarSetupRunIdRef = useRef(0);
 
   const isLoggedIn = Boolean(token);
   const isProfileComplete = useMemo(() => onboardingCompleted === true, [onboardingCompleted]);
@@ -421,6 +425,74 @@ function App() {
     }
     aiSmoothStateRef.current.clear();
   };
+  const tryPlayAvatarAudio = () => {
+    const allAudioEls = [...avatarAudioElsRef.current, ...pendingAvatarAudioElsRef.current];
+    if (allAudioEls.length === 0) return;
+    for (const audioEl of allAudioEls) {
+      try {
+        const canPlay = audioUnlockedRef.current && !aiSilencedRef.current;
+        audioEl.muted = !canPlay;
+        if (!canPlay) {
+          audioEl.pause();
+          continue;
+        }
+        void audioEl.play().catch(() => {});
+      } catch {
+        // no-op
+      }
+    }
+  };
+  const attachAvatarAudioTrack = (track) => {
+    if (!track || track.kind !== "audio") return;
+    const el = document.createElement("audio");
+    el.autoplay = false;
+    el.playsInline = true;
+    el.style.display = "none";
+    el.muted = true;
+    const mediaTrack = track?.mediaStreamTrack || null;
+    if (mediaTrack) {
+      el.srcObject = new MediaStream([mediaTrack]);
+    } else {
+      // Fallback for SDK shape differences.
+      track.attach(el);
+    }
+    document.body.appendChild(el);
+    avatarAudioElsRef.current.push(el);
+    pendingAvatarAudioElsRef.current.push(el);
+  };
+  const flushPendingAvatarAudioTracks = () => {
+    if (!audioUnlockedRef.current) return;
+    const queued = pendingAvatarAudioTracksRef.current.splice(0, pendingAvatarAudioTracksRef.current.length);
+    for (const track of queued) {
+      attachAvatarAudioTrack(track);
+    }
+  };
+  const unlockRoomAudio = async () => {
+    const room = livekitRoomRef.current;
+    if (!room) return;
+    try {
+      await room.startAudio();
+    } catch {
+      // Browser may still block until a stronger user gesture; retry on next interaction.
+    }
+  };
+
+  useEffect(() => {
+    const unlockAudio = () => {
+      audioUnlockedRef.current = true;
+      flushPendingAvatarAudioTracks();
+      void unlockRoomAudio();
+      tryPlayAvatarAudio();
+    };
+    window.addEventListener("pointerdown", unlockAudio, { passive: true });
+    window.addEventListener("keydown", unlockAudio);
+    window.addEventListener("touchstart", unlockAudio, { passive: true });
+    return () => {
+      window.removeEventListener("pointerdown", unlockAudio);
+      window.removeEventListener("keydown", unlockAudio);
+      window.removeEventListener("touchstart", unlockAudio);
+    };
+  }, []);
   const reportTrainingCompletion = async () => {
     // Deprecated path: completion is now persisted by backend from attendance ping.
     completionReportedRef.current = true;
@@ -485,8 +557,9 @@ function App() {
     const allAudioEls = [...avatarAudioElsRef.current, ...pendingAvatarAudioElsRef.current];
     for (const audioEl of allAudioEls) {
       try {
-        audioEl.muted = shouldSilence;
-        if (shouldSilence) audioEl.pause();
+        const canPlay = audioUnlockedRef.current && !shouldSilence;
+        audioEl.muted = !canPlay;
+        if (!canPlay) audioEl.pause();
         else void audioEl.play().catch(() => {});
       } catch {
         // no-op
@@ -719,16 +792,41 @@ function App() {
   const setupAvatarRoom = async (jwtToken) => {
     if (avatarBootstrappedRef.current) return;
     avatarBootstrappedRef.current = true;
+    const runId = ++avatarSetupRunIdRef.current;
+    const isStaleRun = () => runId !== avatarSetupRunIdRef.current;
     setAvatarReady(false);
     setAvatarLoading(true);
     try {
-      const response = await fetch(`${API_BASE_URL}/avatar/bey/session`, {
-        method: "POST",
-        headers: { Authorization: `Bearer ${jwtToken}` },
-      });
-      const payload = await response.json();
-      if (!response.ok) {
-        throw new Error(payload.message || "Failed to start avatar session.");
+      let payload = null;
+      try {
+        const cachedRaw = window.localStorage.getItem(AVATAR_SESSION_CACHE_KEY);
+        const cached = cachedRaw ? JSON.parse(cachedRaw) : null;
+        if (cached?.payload && Number(cached?.expiresAt || 0) > Date.now()) {
+          payload = cached.payload;
+        }
+      } catch {
+        window.localStorage.removeItem(AVATAR_SESSION_CACHE_KEY);
+      }
+
+      if (!payload) {
+        const response = await fetch(`${API_BASE_URL}/avatar/bey/session`, {
+          method: "POST",
+          headers: { Authorization: `Bearer ${jwtToken}` },
+        });
+        payload = await response.json();
+        if (!response.ok) {
+          throw new Error(payload.message || "Failed to start avatar session.");
+        }
+        window.localStorage.setItem(
+          AVATAR_SESSION_CACHE_KEY,
+          JSON.stringify({
+            payload,
+            expiresAt: Date.now() + 90_000,
+          }),
+        );
+      }
+      if (isStaleRun()) {
+        return;
       }
 
       if (livekitRoomRef.current) livekitRoomRef.current.disconnect();
@@ -752,16 +850,15 @@ function App() {
           setAvatarLoading(false);
         }
         if (track.kind === "audio") {
-          const el = track.attach();
-          el.autoplay = false;
-          el.style.display = "none";
-          el.muted = aiSilencedRef.current;
-          document.body.appendChild(el);
-          avatarAudioElsRef.current.push(el);
-          if (avatarVideoReadyRef.current && !aiSilencedRef.current) {
-            void el.play().catch(() => {});
+          if (!audioUnlockedRef.current) {
+            pendingAvatarAudioTracksRef.current.push(track);
           } else {
-            pendingAvatarAudioElsRef.current.push(el);
+            attachAvatarAudioTrack(track);
+          }
+          if (audioUnlockedRef.current && avatarVideoReadyRef.current && !aiSilencedRef.current) {
+            flushPendingAvatarAudioTracks();
+            void unlockRoomAudio();
+            tryPlayAvatarAudio();
           }
         }
       });
@@ -907,6 +1004,7 @@ function App() {
           audioEl.remove();
         }
         pendingAvatarAudioElsRef.current = [];
+        pendingAvatarAudioTracksRef.current = [];
         if (avatarContainerRef.current) avatarContainerRef.current.innerHTML = "";
         setAiSpeaking(false);
 
@@ -937,14 +1035,33 @@ function App() {
       });
 
       await room.connect(payload.livekitUrl, payload.participantToken);
+      if (isStaleRun()) {
+        room.disconnect();
+        return;
+      }
       livekitRoomRef.current = room;
       avatarReconnectAttemptsRef.current = 0;
 
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      if (isStaleRun()) {
+        stream.getTracks().forEach((track) => track.stop());
+        room.disconnect();
+        return;
+      }
       const micSource = stream.getAudioTracks()[0];
       const micTrack = new LocalAudioTrack(micSource);
       await micTrack.mute();
       await room.localParticipant.publishTrack(micTrack, { source: Track.Source.Microphone });
+      if (isStaleRun()) {
+        try {
+          await micTrack.mute();
+        } catch {
+          // no-op
+        }
+        micTrack.stop();
+        room.disconnect();
+        return;
+      }
       localMicTrackRef.current = micTrack;
       try {
         if (camStreamRef.current) {
@@ -960,6 +1077,10 @@ function App() {
         const camStream = await navigator.mediaDevices.getUserMedia({
           video: { facingMode: "user" },
         });
+        if (isStaleRun()) {
+          camStream.getTracks().forEach((track) => track.stop());
+          return;
+        }
         camStreamRef.current = camStream;
         const camTrack = camStream.getVideoTracks()[0] || null;
         cameraVideoTrackRef.current = camTrack;
@@ -977,6 +1098,7 @@ function App() {
         setCamOn(false);
       }
     } catch (error) {
+      window.localStorage.removeItem(AVATAR_SESSION_CACHE_KEY);
       setSocketError(error.message || "Avatar setup failed.");
       setAvatarLoading(false);
       avatarBootstrappedRef.current = false;
@@ -985,6 +1107,12 @@ function App() {
   };
 
   const setupAvatarRoomWithRetry = async (jwtToken) => {
+    const existingRoom = livekitRoomRef.current;
+    const existingState = String(existingRoom?.state || "").toLowerCase();
+    if (existingRoom && (existingState === "connected" || existingState === "reconnecting")) {
+      return;
+    }
+
     let lastError = null;
     for (let attempt = 1; attempt <= AVATAR_SETUP_MAX_RETRIES; attempt += 1) {
       try {
@@ -1027,6 +1155,7 @@ function App() {
       setSocketError(error.message || "Socket connection failed.");
       if ((error.message || "").toLowerCase().includes("auth")) {
         window.localStorage.removeItem(TOKEN_STORAGE_KEY);
+        window.localStorage.removeItem(AVATAR_SESSION_CACHE_KEY);
         setToken("");
       }
     });
@@ -1325,6 +1454,7 @@ function App() {
   };
 
   const disconnectRealtime = () => {
+    avatarSetupRunIdRef.current += 1;
     if (avatarReconnectTimerRef.current) {
       clearTimeout(avatarReconnectTimerRef.current);
       avatarReconnectTimerRef.current = null;
@@ -1372,6 +1502,7 @@ function App() {
       audioEl.remove();
     }
     pendingAvatarAudioElsRef.current = [];
+    pendingAvatarAudioTracksRef.current = [];
     if (avatarContainerRef.current) avatarContainerRef.current.innerHTML = "";
     clearAiSmoothers();
     setLiveSttText("");
@@ -1412,6 +1543,9 @@ function App() {
   };
 
   const beginHoldToTalk = async () => {
+    audioUnlockedRef.current = true;
+    await unlockRoomAudio();
+    tryPlayAvatarAudio();
     setStatus("listening");
     setLiveSttText("Talking...");
     try {
@@ -1551,6 +1685,7 @@ function App() {
         onSubmit={handleSaveProfile}
         onLogout={() => {
           window.localStorage.removeItem(TOKEN_STORAGE_KEY);
+          window.localStorage.removeItem(AVATAR_SESSION_CACHE_KEY);
           setToken("");
           setStatus("offline");
           setProfileError("");
@@ -1575,6 +1710,7 @@ function App() {
         disconnectRealtime();
         setSessionEndedScreen(false);
         window.localStorage.removeItem(TOKEN_STORAGE_KEY);
+        window.localStorage.removeItem(AVATAR_SESSION_CACHE_KEY);
         setToken("");
         setCandidateProfile({
           stream: "",
