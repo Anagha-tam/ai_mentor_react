@@ -1519,6 +1519,41 @@ function App() {
     setAssessmentSubmitted(false);
   };
 
+  const resetCandidateStateAfterLogout = () => {
+    setSessionEndedScreen(false);
+    window.localStorage.removeItem(TOKEN_STORAGE_KEY);
+    window.localStorage.removeItem(AVATAR_SESSION_CACHE_KEY);
+    setToken("");
+    setCandidateProfile({
+      stream: "",
+      class: "",
+      marks: { physics: "", chemistry: "", maths: "", biology: "" },
+      cgpa10: "",
+      entranceExam: "JEE",
+    });
+    setOnboardingCompleted(false);
+    setMessages([]);
+    setStudyProgress(null);
+    setProfileError("");
+    setSocketError("");
+  };
+
+  const logoutCandidate = async () => {
+    const jwtToken = token || window.localStorage.getItem(TOKEN_STORAGE_KEY) || "";
+    if (jwtToken) {
+      try {
+        await fetch(`${API_BASE_URL}/avatar/bey/end`, {
+          method: "POST",
+          headers: { Authorization: `Bearer ${jwtToken}` },
+        });
+      } catch {
+        // Best-effort cleanup of LiveKit/Bey resources.
+      }
+    }
+    disconnectRealtime();
+    resetCandidateStateAfterLogout();
+  };
+
   const endConversation = async () => {
     if (!token || endingConversation) return;
     setEndingConversation(true);
@@ -1684,19 +1719,7 @@ function App() {
         onChange={handleProfileFieldChange}
         onSubmit={handleSaveProfile}
         onLogout={() => {
-          window.localStorage.removeItem(TOKEN_STORAGE_KEY);
-          window.localStorage.removeItem(AVATAR_SESSION_CACHE_KEY);
-          setToken("");
-          setStatus("offline");
-          setProfileError("");
-          setOnboardingCompleted(false);
-          setCandidateProfile({
-            stream: "",
-            class: "",
-            marks: { physics: "", chemistry: "", maths: "", biology: "" },
-            cgpa10: "",
-            entranceExam: "JEE",
-          });
+          void logoutCandidate();
         }}
       />
     );
@@ -1706,22 +1729,8 @@ function App() {
     <CandidateSessionPage
       sessionEndedScreen={sessionEndedScreen}
       interruptAi={interruptAi}
-      disconnectAndLogout={() => {
-        disconnectRealtime();
-        setSessionEndedScreen(false);
-        window.localStorage.removeItem(TOKEN_STORAGE_KEY);
-        window.localStorage.removeItem(AVATAR_SESSION_CACHE_KEY);
-        setToken("");
-        setCandidateProfile({
-          stream: "",
-          class: "",
-          marks: { physics: "", chemistry: "", maths: "", biology: "" },
-          cgpa10: "",
-          entranceExam: "JEE",
-        });
-        setOnboardingCompleted(false);
-        setMessages([]);
-        setStudyProgress(null);
+      disconnectAndLogout={async () => {
+        await logoutCandidate();
       }}
       sessionTimer={sessionTimer}
       avatarContainerRef={avatarContainerRef}
