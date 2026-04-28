@@ -44,6 +44,7 @@ export function CandidateSessionPage({
 }) {
   const [currentView, setCurrentView] = useState("chat");
   const [collapsedChapters, setCollapsedChapters] = useState({});
+  const [accuracyHoverIndex, setAccuracyHoverIndex] = useState(null);
   const getLocalDateKey = (dateInput) => {
     const date = dateInput instanceof Date ? dateInput : new Date(dateInput);
     if (Number.isNaN(date.getTime())) return "";
@@ -187,6 +188,34 @@ export function CandidateSessionPage({
       })
       .join(" ");
   }, [dailyAccuracySeries]);
+  const accuracyAreaPath = useMemo(() => {
+    if (!Array.isArray(dailyAccuracySeries) || dailyAccuracySeries.length === 0) return "";
+    const width = 300;
+    const height = 92;
+    const points = dailyAccuracySeries.map((item, idx) => {
+      const x = (idx / Math.max(1, dailyAccuracySeries.length - 1)) * width;
+      const y = height - (Math.max(0, Math.min(100, item.accuracy)) / 100) * height;
+      return { x, y };
+    });
+    const line = points.map((point) => `${point.x.toFixed(2)} ${point.y.toFixed(2)}`).join(" L ");
+    const first = points[0];
+    const last = points[points.length - 1];
+    return `M ${first.x.toFixed(2)} 92 L ${line} L ${last.x.toFixed(2)} 92 Z`;
+  }, [dailyAccuracySeries]);
+  const averageAccuracy = useMemo(() => {
+    if (!Array.isArray(dailyAccuracySeries) || dailyAccuracySeries.length === 0) return 0;
+    return Math.round(
+      dailyAccuracySeries.reduce((sum, point) => sum + Number(point.accuracy || 0), 0) / dailyAccuracySeries.length,
+    );
+  }, [dailyAccuracySeries]);
+  const hoveredAccuracy =
+    accuracyHoverIndex != null && dailyAccuracySeries[accuracyHoverIndex]
+      ? dailyAccuracySeries[accuracyHoverIndex]
+      : null;
+  const hoverLeftPct =
+    hoveredAccuracy && Array.isArray(dailyAccuracySeries) && dailyAccuracySeries.length > 1
+      ? (accuracyHoverIndex / (dailyAccuracySeries.length - 1)) * 100
+      : 0;
   const reviewChapterIndex = useMemo(() => {
     if (Array.isArray(assessmentStatuses) && assessmentStatuses.length > 0) {
       const sorted = [...assessmentStatuses].sort((a, b) => {
@@ -399,23 +428,86 @@ export function CandidateSessionPage({
                 </div>
               </div>
               <div className="planner-accuracy-chart">
-                <svg viewBox="0 0 300 110" preserveAspectRatio="none" role="img" aria-label="Daily assessment accuracy">
+                <svg viewBox="0 0 300 130" preserveAspectRatio="xMidYMid meet" role="img" aria-label="Daily assessment accuracy">
+                  <defs>
+                    <linearGradient id="accuracyAreaGradient" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%" stopColor="#12b886" stopOpacity="0.28" />
+                      <stop offset="100%" stopColor="#12b886" stopOpacity="0.02" />
+                    </linearGradient>
+                  </defs>
                   {[20, 40, 60, 80].map((tick) => {
                     const y = 92 - (tick / 100) * 92;
-                    return <line key={tick} x1="0" y1={y} x2="300" y2={y} className="accuracy-grid-line" />;
+                    return (
+                      <g key={tick}>
+                        <line x1="0" y1={y} x2="300" y2={y} className="accuracy-grid-line" />
+                        <text x="2" y={y - 2} className="accuracy-y-label">{tick}%</text>
+                      </g>
+                    );
                   })}
+                  {accuracyAreaPath ? <path d={accuracyAreaPath} className="accuracy-area" /> : null}
+                  {averageAccuracy > 0 ? (
+                    <line
+                      x1="0"
+                      y1={92 - (averageAccuracy / 100) * 92}
+                      x2="300"
+                      y2={92 - (averageAccuracy / 100) * 92}
+                      className="accuracy-average-line"
+                    />
+                  ) : null}
                   <polyline points={accuracyChartPoints} className="accuracy-line" />
                   {dailyAccuracySeries.map((point, idx) => {
                     const x = (idx / Math.max(1, dailyAccuracySeries.length - 1)) * 300;
                     const y = 92 - (Math.max(0, Math.min(100, point.accuracy)) / 100) * 92;
-                    return <circle key={point.key} cx={x} cy={y} r="3.5" className="accuracy-dot" />;
+                    const active = idx === accuracyHoverIndex;
+                    return (
+                      <g key={point.key}>
+                        <circle
+                          cx={x}
+                          cy={y}
+                          r={active ? "6.5" : "3.5"}
+                          className={`accuracy-dot ${active ? "active" : ""}`}
+                          style={{ "--dot-delay": `${idx * 80}ms` }}
+                          onMouseEnter={() => setAccuracyHoverIndex(idx)}
+                          onFocus={() => setAccuracyHoverIndex(idx)}
+                          onMouseLeave={() => setAccuracyHoverIndex(null)}
+                          onBlur={() => setAccuracyHoverIndex(null)}
+                        />
+                        <rect
+                          x={Math.max(0, x - 10)}
+                          y={0}
+                          width="20"
+                          height="110"
+                          fill="transparent"
+                          onMouseEnter={() => setAccuracyHoverIndex(idx)}
+                          onMouseLeave={() => setAccuracyHoverIndex(null)}
+                        />
+                      </g>
+                    );
                   })}
+                  {dailyAccuracySeries.map((point, idx) => {
+                    const x = (idx / Math.max(1, dailyAccuracySeries.length - 1)) * 300;
+                    return (
+                      <text key={`${point.key}-label`} x={x} y="123" textAnchor="middle" className="accuracy-day-label">
+                        {point.label}
+                      </text>
+                    );
+                  })}
+                  {hoveredAccuracy ? (
+                    <line
+                      x1={(accuracyHoverIndex / Math.max(1, dailyAccuracySeries.length - 1)) * 300}
+                      y1="0"
+                      x2={(accuracyHoverIndex / Math.max(1, dailyAccuracySeries.length - 1)) * 300}
+                      y2="102"
+                      className="accuracy-hover-line"
+                    />
+                  ) : null}
                 </svg>
-                <div className="planner-accuracy-labels">
-                  {dailyAccuracySeries.map((point) => (
-                    <span key={point.key}>{point.label}</span>
-                  ))}
-                </div>
+                {hoveredAccuracy ? (
+                  <div className="accuracy-tooltip" style={{ left: `${hoverLeftPct}%` }}>
+                    <strong>{hoveredAccuracy.label}</strong>
+                    <span>{hoveredAccuracy.accuracy}% accuracy</span>
+                  </div>
+                ) : null}
               </div>
             </div>
           </div>
@@ -492,14 +584,18 @@ export function CandidateSessionPage({
                   </span>
                 </div>
                 <div className="planner-weekly-bars">
-                  {weeklyStudyHours.map((entry) => {
+                  {weeklyStudyHours.map((entry, idx) => {
                     const maxSeconds = Math.max(1, ...weeklyStudyHours.map((item) => Number(item.seconds || 0)));
                     const heightPct = Math.max(8, Math.round((Number(entry.seconds || 0) / maxSeconds) * 100));
                     const hoursLabel = (Number(entry.seconds || 0) / 3600).toFixed(1);
                     return (
                       <div key={entry.key || entry.day} className="planner-weekly-bar-col">
                         <div className="planner-weekly-bar-wrap">
-                          <div className="planner-weekly-bar" style={{ height: `${heightPct}%` }} title={`${hoursLabel}h`} />
+                          <div
+                            className="planner-weekly-bar"
+                            style={{ height: `${heightPct}%`, "--bar-delay": `${idx * 70}ms` }}
+                            title={`${hoursLabel}h`}
+                          />
                         </div>
                         <small>{entry.day}</small>
                       </div>
