@@ -109,7 +109,7 @@
 }
 
 .mentor-rail-btn.active {
-  background: linear-gradient(135deg, #2f6ef6 0%, #6f76ff 100%);
+  background: linear-gradient(135deg, #7c3aed 0%, #a855f7 100%);
   color: #fff;
 }
 
@@ -534,7 +534,7 @@
 
 .take-btn, .retake-btn {
   border: none;
-  background: #2f6ef6;
+  background: #7c3aed;
   color: #fff;
   font-size: 10px;
   font-weight: 600;
@@ -615,7 +615,7 @@
   width: 40px;
   height: 40px;
   border: 3px solid #f3f3f3;
-  border-top: 3px solid #2f6ef6;
+  border-top: 3px solid #7c3aed;
   border-radius: 50%;
   animation: spin 1s linear infinite;
 }
@@ -1229,7 +1229,7 @@
 .brand {
   width: 32px;
   height: 32px;
-  background: linear-gradient(135deg, #2f6ef6 0%, #6f76ff 100%);
+  background: linear-gradient(135deg, #7c3aed 0%, #a855f7 100%);
   border-radius: 9px;
   display: flex;
   align-items: center;
@@ -1350,7 +1350,7 @@
 }
 
 .planner-day.active {
-  background: linear-gradient(135deg, #2f6ef6 0%, #6f76ff 100%);
+  background: linear-gradient(135deg, #7c3aed 0%, #a855f7 100%);
   color: #fff;
 }
 
@@ -1552,7 +1552,7 @@
 }
 
 .planner-progress-label strong {
-  color: #2f6ef6;
+  color: #7c3aed;
 }
 
 .planner-progress-bar {
@@ -1566,7 +1566,7 @@
 .planner-progress-fill {
   height: 100%;
   border-radius: inherit;
-  background: linear-gradient(90deg, #2f6ef6 0%, #6f76ff 100%);
+  background: linear-gradient(90deg, #7c3aed 0%, #a855f7 100%);
 }
 
 .planner-task-item {
@@ -1583,7 +1583,7 @@
 }
 
 .planner-task-item.current {
-  color: #2f6ef6;
+  color: #7c3aed;
   font-weight: 600;
 }
 
@@ -1608,8 +1608,8 @@
 }
 
 .planner-task-state.current {
-  background: #e0e7ff;
-  color: #3730a3;
+  background: #ede9fe;
+  color: #5b21b6;
 }
 
 .planner-task-state.upcoming {
@@ -1646,7 +1646,7 @@
 .planner-weekly-head span {
   font-size: 11px;
   font-weight: 700;
-  color: #2f6ef6;
+  color: #7c3aed;
 }
 
 .planner-weekly-bars {
@@ -1674,7 +1674,7 @@
 .planner-weekly-bar {
   width: 100%;
   border-radius: 6px 6px 2px 2px;
-  background: linear-gradient(180deg, #6f76ff 0%, #2f6ef6 100%);
+  background: linear-gradient(180deg, #a855f7 0%, #7c3aed 100%);
   min-height: 6px;
   transform-origin: bottom;
   animation: weekly-bar-grow 700ms cubic-bezier(0.16, 1, 0.3, 1) both;
@@ -2399,7 +2399,7 @@
 }
 
 .ptalk-btn {
-  background: linear-gradient(135deg, #2f6ef6 0%, #6f76ff 100%);
+  background: linear-gradient(135deg, #7c3aed 0%, #a855f7 100%);
   border: none;
   border-radius: 14px;
   padding: 10px 14px;
@@ -2463,7 +2463,7 @@
 .chat-send-btn {
   border: none;
   border-radius: 12px;
-  background: linear-gradient(135deg, #2f6ef6 0%, #6f76ff 100%);
+  background: linear-gradient(135deg, #7c3aed 0%, #a855f7 100%);
   color: #fff;
   font-size: 13px;
   font-weight: 600;
@@ -2586,8 +2586,8 @@
 }
 
 .assessment-week-tab.active {
-  border-color: #2f6ef6;
-  background: #edf3ff;
+  border-color: #7c3aed;
+  background: #f3e8ff;
 }
 
 .assessment-body {
@@ -2632,8 +2632,8 @@
 }
 
 .assessment-option.selected {
-  border-color: #2f6ef6;
-  background: #edf3ff;
+  border-color: #7c3aed;
+  background: #f3e8ff;
 }
 
 .assessment-footer {
@@ -2646,7 +2646,7 @@
 .assessment-submit {
   border: none;
   border-radius: 10px;
-  background: linear-gradient(135deg, #2f6ef6 0%, #6f76ff 100%);
+  background: linear-gradient(135deg, #7c3aed 0%, #a855f7 100%);
   color: #fff;
   padding: 9px 14px;
   cursor: pointer;
@@ -2880,8 +2880,8 @@
 }
 
 .sidebar-chapter.active .sidebar-chapter-title {
-  border-left-color: #2f6ef6;
-  color: #2f6ef6;
+  border-left-color: #7c3aed;
+  color: #7c3aed;
 }
 
 .sidebar-topics-list {
@@ -2924,7 +2924,7 @@
 
 .sidebar-topic-item.active {
   background: #eff4ff;
-  color: #2f6ef6;
+  color: #7c3aed;
   font-weight: 600;
   box-shadow: 0 4px 12px rgba(47, 110, 246, 0.08);
 }
