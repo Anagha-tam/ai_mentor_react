@@ -352,7 +352,9 @@ function App() {
   const handleReviewChapterMistakes = async (chapterIndex) => {
     if (!token) return;
     const chapterTitle = String(
-      studyProgressRef.current?.studyMaterialId?.chapters?.[chapterIndex]?.chapterTitle || "",
+      studyProgressRef.current?.studyMaterialId?.chapters?.[chapterIndex]?.chapterTitle ||
+      studyProgressRef.current?.studyPlanId?.weeks?.[chapterIndex]?.title ||
+      "",
     ).trim();
     const modalTitle = chapterTitle
       ? `Review Mistakes (Week ${chapterIndex + 1}: ${chapterTitle})`

@@ -45,6 +45,29 @@ export function CandidateSessionPage({
   const [currentView, setCurrentView] = useState("chat");
   const [collapsedChapters, setCollapsedChapters] = useState({});
   const [accuracyHoverIndex, setAccuracyHoverIndex] = useState(null);
+  const resolvedStudyMaterial = useMemo(() => {
+    const material = studyProgress?.studyMaterialId;
+    if (material && typeof material === "object" && Array.isArray(material.chapters)) {
+      return material;
+    }
+    const plan = studyProgress?.studyPlanId;
+    if (plan && typeof plan === "object" && Array.isArray(plan.weeks)) {
+      return {
+        _id: plan._id,
+        subject: plan.planName || "General Plan",
+        chapters: plan.weeks.map((week, weekIdx) => ({
+          _id: week?._id || `week-${weekIdx + 1}`,
+          chapterNumber: Number(week?.weekNumber || weekIdx + 1),
+          chapterTitle: String(week?.title || `Week ${weekIdx + 1}`),
+          topics: (Array.isArray(week?.topics) ? week.topics : []).map((topic, topicIdx) => ({
+            _id: `${week?._id || `week-${weekIdx + 1}`}-topic-${topicIdx}`,
+            title: String(topic || ""),
+          })),
+        })),
+      };
+    }
+    return null;
+  }, [studyProgress]);
   const getLocalDateKey = (dateInput) => {
     const date = dateInput instanceof Date ? dateInput : new Date(dateInput);
     if (Number.isNaN(date.getTime())) return "";
@@ -54,7 +77,7 @@ export function CandidateSessionPage({
     return `${year}-${month}-${day}`;
   };
   useEffect(() => {
-    const chapters = studyProgress?.studyMaterialId?.chapters;
+    const chapters = resolvedStudyMaterial?.chapters;
     if (!Array.isArray(chapters) || chapters.length === 0) return;
     const activeChapterIndex = Number(studyProgress?.currentChapterIndex || 0);
     setCollapsedChapters((prev) => {
@@ -65,7 +88,7 @@ export function CandidateSessionPage({
       });
       return next;
     });
-  }, [studyProgress]);
+  }, [studyProgress, resolvedStudyMaterial]);
   const plannerData = useMemo(() => {
     const now = new Date();
     const monthLabel = now.toLocaleString("en-US", { month: "short", year: "numeric" });
@@ -83,10 +106,10 @@ export function CandidateSessionPage({
   }, []);
   const currentChapterIndex = Number(studyProgress?.currentChapterIndex || 0);
   const currentTopicIndex = Number(studyProgress?.currentTopicIndex || 0);
-  const currentSubject = String(studyProgress?.studyMaterialId?.subject || "").trim();
-  const currentChapter = studyProgress?.studyMaterialId?.chapters?.[currentChapterIndex] || null;
-  const totalChapters = Array.isArray(studyProgress?.studyMaterialId?.chapters)
-    ? studyProgress.studyMaterialId.chapters.length
+  const currentSubject = String(resolvedStudyMaterial?.subject || "").trim();
+  const currentChapter = resolvedStudyMaterial?.chapters?.[currentChapterIndex] || null;
+  const totalChapters = Array.isArray(resolvedStudyMaterial?.chapters)
+    ? resolvedStudyMaterial.chapters.length
     : 0;
   const sessionTitle = currentSubject ? `${currentSubject} Mentor` : "AI Mentor";
   const dashboardSubtitle = currentSubject ? `${currentSubject} analytics` : "Session analytics";
@@ -515,10 +538,10 @@ export function CandidateSessionPage({
           <div className="study-roadmap-sidebar">
             <div className="sidebar-header">
               <h3>Study Plan</h3>
-              <span>{studyProgress?.studyMaterialId?.subject}</span>
+              <span>{resolvedStudyMaterial?.subject}</span>
             </div>
             <div className="sidebar-content">
-              {studyProgress?.studyMaterialId?.chapters?.map((chapter, cIdx) => {
+              {resolvedStudyMaterial?.chapters?.map((chapter, cIdx) => {
                 const isChapterActive = cIdx === studyProgress.currentChapterIndex;
                 const isChapterDone = cIdx < studyProgress.currentChapterIndex;
                 const isCollapsed = Boolean(collapsedChapters[cIdx]);
@@ -655,7 +678,7 @@ export function CandidateSessionPage({
               <span>{roadmapSubtitle}</span>
             </div>
             <div className="roadmap-list">
-              {studyProgress?.studyMaterialId?.chapters?.map((chapter, cIdx) => {
+              {resolvedStudyMaterial?.chapters?.map((chapter, cIdx) => {
                 const isDone = cIdx < studyProgress.currentChapterIndex;
                 const isActive = cIdx === studyProgress.currentChapterIndex;
                 return (
@@ -697,7 +720,7 @@ export function CandidateSessionPage({
                     Score: {assessmentModal.score}/{assessmentModal.totalQuestions}
                   </p>
                   <div className="assessment-week-tabs">
-                    {(studyProgress?.studyMaterialId?.chapters || []).map((chapter, index) => (
+                    {(resolvedStudyMaterial?.chapters || []).map((chapter, index) => (
                       <button
                         key={chapter?._id || index}
                         type="button"
