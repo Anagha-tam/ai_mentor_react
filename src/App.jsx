@@ -28,6 +28,7 @@ const SOCKET_CONFIG = (() => {
 const TOKEN_STORAGE_KEY = "ai_mentor_token";
 const ADMIN_TOKEN_STORAGE_KEY = "ai_mentor_admin_token";
 const AVATAR_SESSION_CACHE_KEY = "ai_mentor_avatar_session_cache";
+const WEEKLY_HOURS_STORAGE_KEY = "ai_mentor_weekly_hours_seconds";
 const AVATAR_LOADER_STEPS = [
   "Connecting to AI Mentor",
   "Checking microphone",
@@ -196,6 +197,56 @@ function App() {
     const ss = String(sessionSeconds % 60).padStart(2, "0");
     return `${mm}:${ss}`;
   }, [sessionSeconds]);
+  const weeklyStudyHours = useMemo(() => {
+    const today = new Date();
+    const dayIndex = today.getDay();
+    const diffToMonday = (dayIndex + 6) % 7;
+    const monday = new Date(today);
+    monday.setHours(0, 0, 0, 0);
+    monday.setDate(today.getDate() - diffToMonday);
+
+    let stored = {};
+    try {
+      stored = JSON.parse(window.localStorage.getItem(WEEKLY_HOURS_STORAGE_KEY) || "{}") || {};
+    } catch {
+      stored = {};
+    }
+
+    const points = [];
+    for (let i = 0; i < 7; i += 1) {
+      const date = new Date(monday);
+      date.setDate(monday.getDate() + i);
+      const key = date.toISOString().slice(0, 10);
+      const valueSeconds = Number(stored[key] || 0);
+      points.push({
+        key,
+        day: date.toLocaleString("en-US", { weekday: "short" }),
+        seconds: valueSeconds,
+      });
+    }
+    const todayKey = today.toISOString().slice(0, 10);
+    const todayPoint = points.find((point) => point.key === todayKey);
+    if (todayPoint) {
+      todayPoint.seconds = Math.max(todayPoint.seconds, sessionSeconds);
+    }
+    return points;
+  }, [sessionSeconds]);
+
+  useEffect(() => {
+    if (isAdminPath || !isLoggedIn) return;
+    try {
+      const todayKey = new Date().toISOString().slice(0, 10);
+      const raw = window.localStorage.getItem(WEEKLY_HOURS_STORAGE_KEY);
+      const parsed = raw ? JSON.parse(raw) : {};
+      const currentSeconds = Number(parsed?.[todayKey] || 0);
+      if (sessionSeconds > currentSeconds) {
+        parsed[todayKey] = sessionSeconds;
+        window.localStorage.setItem(WEEKLY_HOURS_STORAGE_KEY, JSON.stringify(parsed));
+      }
+    } catch {
+      // Best-effort local tracking only.
+    }
+  }, [isAdminPath, isLoggedIn, sessionSeconds]);
   const adminStats = useMemo(() => {
     const total = adminRows.length;
     const detected = adminRows.filter((row) => row?.insights?.currentlyDetected).length;
@@ -1796,6 +1847,7 @@ function App() {
       assessmentStatuses={assessmentStatuses}
       assessmentLoading={assessmentLoading}
       onTakeChapterAssessment={handleTakeChapterAssessment}
+      weeklyStudyHours={weeklyStudyHours}
     />
   );
 }

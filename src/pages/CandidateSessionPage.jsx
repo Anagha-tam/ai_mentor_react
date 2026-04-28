@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 export function CandidateSessionPage({
   sessionEndedScreen,
@@ -37,9 +37,81 @@ export function CandidateSessionPage({
   assessmentStatuses = [],
   assessmentLoading,
   onTakeChapterAssessment,
+  weeklyStudyHours = [],
 }) {
   const [currentView, setCurrentView] = useState("chat");
   const [collapsedChapters, setCollapsedChapters] = useState({});
+  useEffect(() => {
+    const chapters = studyProgress?.studyMaterialId?.chapters;
+    if (!Array.isArray(chapters) || chapters.length === 0) return;
+    const activeChapterIndex = Number(studyProgress?.currentChapterIndex || 0);
+    setCollapsedChapters((prev) => {
+      if (Object.keys(prev).length > 0) return prev;
+      const next = {};
+      chapters.forEach((_, idx) => {
+        next[idx] = idx !== activeChapterIndex;
+      });
+      return next;
+    });
+  }, [studyProgress]);
+  const plannerData = useMemo(() => {
+    const now = new Date();
+    const monthLabel = now.toLocaleString("en-US", { month: "short", year: "numeric" });
+    const days = Array.from({ length: 6 }, (_, idx) => {
+      const date = new Date(now);
+      date.setDate(now.getDate() + idx);
+      return {
+        key: date.toISOString(),
+        label: date.toLocaleString("en-US", { weekday: "short" }),
+        dayNumber: date.getDate(),
+        isToday: idx === 0,
+      };
+    });
+    return { monthLabel, days };
+  }, []);
+  const currentChapterIndex = Number(studyProgress?.currentChapterIndex || 0);
+  const currentTopicIndex = Number(studyProgress?.currentTopicIndex || 0);
+  const currentSubject = String(studyProgress?.studyMaterialId?.subject || "").trim();
+  const currentChapter = studyProgress?.studyMaterialId?.chapters?.[currentChapterIndex] || null;
+  const totalChapters = Array.isArray(studyProgress?.studyMaterialId?.chapters)
+    ? studyProgress.studyMaterialId.chapters.length
+    : 0;
+  const sessionTitle = currentSubject ? `${currentSubject} Mentor` : "AI Mentor";
+  const sessionSubtitle =
+    totalChapters > 0
+      ? `${totalChapters} chapter${totalChapters === 1 ? "" : "s"} in your study plan`
+      : "Candidate guidance and doubt-clearing session";
+  const dashboardSubtitle = currentSubject ? `${currentSubject} analytics` : "Session analytics";
+  const roadmapSubtitle = currentSubject ? `${currentSubject} plan` : "Study plan";
+  const chatPlaceholder = currentSubject ? `Ask your ${currentSubject} question...` : "Type your message...";
+  const chapterTopics = Array.isArray(currentChapter?.topics) ? currentChapter.topics : [];
+  const todaysWindowStart = Math.max(0, currentTopicIndex - 1);
+  const todaysTaskItems = chapterTopics.slice(todaysWindowStart, todaysWindowStart + 3).map((topic, idx) => {
+    const absoluteTopicIndex = todaysWindowStart + idx;
+    const status =
+      absoluteTopicIndex < currentTopicIndex ? "done" : absoluteTopicIndex === currentTopicIndex ? "current" : "upcoming";
+    return {
+      id: topic?._id || `${currentChapterIndex}-${absoluteTopicIndex}`,
+      title: topic?.title || `Topic ${absoluteTopicIndex + 1}`,
+      status,
+    };
+  });
+  const todaysTaskDoneCount = todaysTaskItems.filter((task) => task.status === "done").length;
+  const todaysTaskProgressPct =
+    todaysTaskItems.length > 0 ? Math.round((todaysTaskDoneCount / todaysTaskItems.length) * 100) : 0;
+  const streakDays = useMemo(() => {
+    if (!Array.isArray(weeklyStudyHours) || weeklyStudyHours.length === 0) return 0;
+    let count = 0;
+    for (let i = weeklyStudyHours.length - 1; i >= 0; i -= 1) {
+      const secs = Number(weeklyStudyHours[i]?.seconds || 0);
+      if (secs > 0) {
+        count += 1;
+        continue;
+      }
+      break;
+    }
+    return count;
+  }, [weeklyStudyHours]);
   const toggleChapterCollapse = (chapterIndex) => {
     setCollapsedChapters((prev) => ({
       ...prev,
@@ -102,8 +174,8 @@ export function CandidateSessionPage({
               </svg>
             </div>
             <div className="session-info">
-              <p>AI Mentor</p>
-              <span>Candidate guidance and doubt-clearing session</span>
+              <p>{sessionTitle}</p>
+              <span>{sessionSubtitle}</span>
             </div>
           </div>
           <div className="live-dot">
@@ -151,11 +223,45 @@ export function CandidateSessionPage({
               </div>
             </div>
             <div className="planner-card">
-              <div className="planner-head"><p>Planner</p><span>Apr 2026</span></div>
+              <div className="planner-head"><p>Planner</p><span>{plannerData.monthLabel}</span></div>
               <div className="planner-grid">
-                {["Tue", "Wed", "Thu", "Fri", "Sat", "Sun"].map((d, i) => (
-                  <div key={d} className={`planner-day ${i === 0 ? "active" : ""}`}><small>{d}</small><strong>{21 + i}</strong></div>
+                {plannerData.days.map((day) => (
+                  <div key={day.key} className={`planner-day ${day.isToday ? "active" : ""}`}>
+                    <small>{day.label}</small>
+                    <strong>{day.dayNumber}</strong>
+                  </div>
                 ))}
+              </div>
+              <div className="planner-tasks">
+                <p className="planner-tasks-title">Today's Tasks</p>
+                <div className="planner-progress-wrap">
+                  <div className="planner-progress-label">
+                    <span>
+                      {todaysTaskDoneCount}/{todaysTaskItems.length || 0} tasks done
+                    </span>
+                    <strong>{todaysTaskProgressPct}%</strong>
+                  </div>
+                  <div className="planner-progress-bar">
+                    <div className="planner-progress-fill" style={{ width: `${todaysTaskProgressPct}%` }} />
+                  </div>
+                </div>
+                {todaysTaskItems.length > 0 ? (
+                  <div className="planner-task-list">
+                    {todaysTaskItems.map((task) => (
+                      <div key={task.id} className={`planner-task-item ${task.status}`}>
+                        <span className="planner-task-bullet">
+                          {task.status === "done" ? "✓" : task.status === "current" ? "●" : "○"}
+                        </span>
+                        <span className="planner-task-text">{task.title}</span>
+                        <span className={`planner-task-state ${task.status}`}>
+                          {task.status === "done" ? "Done" : task.status === "current" ? "In Progress" : "Next"}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="planner-task-empty">No tasks yet. Start a chapter to see today's task plan.</p>
+                )}
               </div>
               <div className="planner-note">Hold Space or the mic button to talk.</div>
             </div>
@@ -189,7 +295,7 @@ export function CandidateSessionPage({
                     event.preventDefault();
                     onSendTextMessage();
                   }
-                }} placeholder="Type your message..." />
+                }} placeholder={chatPlaceholder} />
                 <button className="chat-send-btn" onClick={onSendTextMessage} disabled={!chatInput?.trim()}>Send</button>
               </div>
               <button className={`ptalk-btn ${status === "listening" ? "talking" : ""}`} onPointerDown={handleTalkPointerDown} onPointerUp={handleTalkPointerUp} onPointerCancel={handleTalkPointerUp}>
@@ -266,13 +372,53 @@ export function CandidateSessionPage({
                   </div>
                 );
               })}
+              <div className="planner-weekly-hours">
+                <div className="planner-weekly-head">
+                  <p>Weekly Hours</p>
+                  <span>
+                    {(weeklyStudyHours.reduce((sum, item) => sum + Number(item.seconds || 0), 0) / 3600).toFixed(1)}h
+                  </span>
+                </div>
+                <div className="planner-weekly-bars">
+                  {weeklyStudyHours.map((entry) => {
+                    const maxSeconds = Math.max(1, ...weeklyStudyHours.map((item) => Number(item.seconds || 0)));
+                    const heightPct = Math.max(8, Math.round((Number(entry.seconds || 0) / maxSeconds) * 100));
+                    const hoursLabel = (Number(entry.seconds || 0) / 3600).toFixed(1);
+                    return (
+                      <div key={entry.key || entry.day} className="planner-weekly-bar-col">
+                        <div className="planner-weekly-bar-wrap">
+                          <div className="planner-weekly-bar" style={{ height: `${heightPct}%` }} title={`${hoursLabel}h`} />
+                        </div>
+                        <small>{entry.day}</small>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+              <div className="sidebar-streak-card">
+                <div className="sidebar-streak-icon">🔥</div>
+                <div>
+                  <strong>{streakDays} {streakDays === 1 ? "Day" : "Days"}</strong>
+                  <span>{streakDays > 0 ? "Study Streak" : "Start your streak today"}</span>
+                </div>
+              </div>
+              <div className="sidebar-quick-actions-card">
+                <h4>Quick Actions</h4>
+                <div className="sidebar-quick-actions-list">
+                  <button type="button" onClick={() => setCurrentView("roadmap")}>View Study Plan</button>
+                  <button type="button" onClick={() => onTakeChapterAssessment(currentChapterIndex)}>
+                    Take Assessment
+                  </button>
+                  <button type="button" onClick={interruptAi}>Review Mistakes</button>
+                </div>
+              </div>
             </div>
           </div>
         </div>
         <div className={`alt-view ${currentView === "dashboard" ? "" : "view-hidden"}`}>
             <div className="alt-header">
               <h2>Dashboard</h2>
-              <span>Session analytics</span>
+              <span>{dashboardSubtitle}</span>
             </div>
             <div className="dash-grid">
               <div className="dash-card">
@@ -296,7 +442,7 @@ export function CandidateSessionPage({
         <div className={`alt-view ${currentView === "roadmap" ? "" : "view-hidden"}`}>
             <div className="alt-header">
               <h2>Roadmap</h2>
-              <span>{studyProgress?.studyMaterialId?.subject || "Interview prep"} plan</span>
+              <span>{roadmapSubtitle}</span>
             </div>
             <div className="roadmap-list">
               {studyProgress?.studyMaterialId?.chapters?.map((chapter, cIdx) => {
@@ -320,8 +466,8 @@ export function CandidateSessionPage({
               })}
               {!studyProgress && (
                 <div className="roadmap-item active">
-                  <strong>Standard Prep</strong>
-                  <p>Follow the AI mentor's guided questions.</p>
+                  <strong>No study plan yet</strong>
+                  <p>Complete onboarding and generate a plan to start tracking progress.</p>
                 </div>
               )}
             </div>
