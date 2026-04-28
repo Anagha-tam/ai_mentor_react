@@ -2,7 +2,6 @@ import { useEffect, useMemo, useState } from "react";
 
 export function CandidateSessionPage({
   sessionEndedScreen,
-  interruptAi,
   disconnectAndLogout,
   sessionTimer,
   avatarContainerRef,
@@ -36,11 +35,23 @@ export function CandidateSessionPage({
   studyProgress,
   assessmentStatuses = [],
   assessmentLoading,
+  reviewLoading,
   onTakeChapterAssessment,
+  onReviewChapterMistakes,
+  reviewToast,
+  onDismissReviewToast,
   weeklyStudyHours = [],
 }) {
   const [currentView, setCurrentView] = useState("chat");
   const [collapsedChapters, setCollapsedChapters] = useState({});
+  const getLocalDateKey = (dateInput) => {
+    const date = dateInput instanceof Date ? dateInput : new Date(dateInput);
+    if (Number.isNaN(date.getTime())) return "";
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, "0");
+    const day = String(date.getDate()).padStart(2, "0");
+    return `${year}-${month}-${day}`;
+  };
   useEffect(() => {
     const chapters = studyProgress?.studyMaterialId?.chapters;
     if (!Array.isArray(chapters) || chapters.length === 0) return;
@@ -77,28 +88,44 @@ export function CandidateSessionPage({
     ? studyProgress.studyMaterialId.chapters.length
     : 0;
   const sessionTitle = currentSubject ? `${currentSubject} Mentor` : "AI Mentor";
-  const sessionSubtitle =
-    totalChapters > 0
-      ? `${totalChapters} chapter${totalChapters === 1 ? "" : "s"} in your study plan`
-      : "Candidate guidance and doubt-clearing session";
   const dashboardSubtitle = currentSubject ? `${currentSubject} analytics` : "Session analytics";
   const roadmapSubtitle = currentSubject ? `${currentSubject} plan` : "Study plan";
   const chatPlaceholder = currentSubject ? `Ask your ${currentSubject} question...` : "Type your message...";
   const chapterTopics = Array.isArray(currentChapter?.topics) ? currentChapter.topics : [];
-  const todaysWindowStart = Math.max(0, currentTopicIndex - 1);
-  const todaysTaskItems = chapterTopics.slice(todaysWindowStart, todaysWindowStart + 3).map((topic, idx) => {
-    const absoluteTopicIndex = todaysWindowStart + idx;
-    const status =
-      absoluteTopicIndex < currentTopicIndex ? "done" : absoluteTopicIndex === currentTopicIndex ? "current" : "upcoming";
-    return {
-      id: topic?._id || `${currentChapterIndex}-${absoluteTopicIndex}`,
-      title: topic?.title || `Topic ${absoluteTopicIndex + 1}`,
-      status,
-    };
-  });
+  const daySlotInWeek = (new Date().getDay() + 6) % 7;
+  const mappedTopicIndexForToday =
+    chapterTopics.length > 0 ? Math.min(chapterTopics.length - 1, Math.floor((daySlotInWeek * chapterTopics.length) / 7)) : 0;
+  const todayTopicIndex = mappedTopicIndexForToday;
+  const todayTopic = chapterTopics[todayTopicIndex] || null;
+  const todaysTaskItems = todayTopic
+    ? [
+        {
+          id: todayTopic?._id || `${currentChapterIndex}-${todayTopicIndex}`,
+          title: todayTopic?.title || `Topic ${todayTopicIndex + 1}`,
+          status:
+            todayTopicIndex < currentTopicIndex
+              ? "done"
+              : todayTopicIndex === currentTopicIndex
+                ? "current"
+                : "upcoming",
+        },
+      ]
+    : [];
   const todaysTaskDoneCount = todaysTaskItems.filter((task) => task.status === "done").length;
   const todaysTaskProgressPct =
     todaysTaskItems.length > 0 ? Math.round((todaysTaskDoneCount / todaysTaskItems.length) * 100) : 0;
+  const expectedTopicCompletionInfo = useMemo(() => {
+    const raw = studyProgress?.expectedTopicCompletionAt;
+    if (!raw || studyProgress?.isCompleted) return { label: "", stale: false };
+    const date = new Date(raw);
+    if (Number.isNaN(date.getTime())) return { label: "", stale: false };
+    const stale = date.getTime() < Date.now();
+    if (stale) return { label: "", stale: true };
+    return {
+      label: date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+      stale: false,
+    };
+  }, [studyProgress]);
   const streakDays = useMemo(() => {
     if (!Array.isArray(weeklyStudyHours) || weeklyStudyHours.length === 0) return 0;
     let count = 0;
@@ -112,6 +139,68 @@ export function CandidateSessionPage({
     }
     return count;
   }, [weeklyStudyHours]);
+  const dailyAccuracySeries = useMemo(() => {
+    const now = new Date();
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const points = [];
+    for (let offset = 6; offset >= 0; offset -= 1) {
+      const date = new Date(today);
+      date.setDate(today.getDate() - offset);
+      const key = getLocalDateKey(date);
+      points.push({
+        key,
+        label: date.toLocaleDateString("en-US", { weekday: "short" }),
+        total: 0,
+        attempts: 0,
+      });
+    }
+    const byKey = new Map(points.map((item) => [item.key, item]));
+    (assessmentStatuses || []).forEach((status) => {
+      const updated = new Date(status?.updatedAt || status?.createdAt || "");
+      if (Number.isNaN(updated.getTime())) return;
+      const key = getLocalDateKey(updated);
+      const point = byKey.get(key);
+      if (!point) return;
+      const total = Number(status?.totalQuestions || 10);
+      const score = Number(status?.score || 0);
+      if (total <= 0) return;
+      point.total += total;
+      point.attempts += Math.max(0, score);
+    });
+    return points.map((point) => {
+      const accuracy = point.total > 0 ? Math.round((point.attempts / point.total) * 100) : 0;
+      return { ...point, accuracy };
+    });
+  }, [assessmentStatuses]);
+  const latestAccuracy = dailyAccuracySeries[dailyAccuracySeries.length - 1]?.accuracy || 0;
+  const previousAccuracy = dailyAccuracySeries[dailyAccuracySeries.length - 2]?.accuracy || 0;
+  const accuracyDelta = latestAccuracy - previousAccuracy;
+  const accuracyChartPoints = useMemo(() => {
+    if (!Array.isArray(dailyAccuracySeries) || dailyAccuracySeries.length === 0) return "";
+    const width = 300;
+    const height = 92;
+    return dailyAccuracySeries
+      .map((item, idx) => {
+        const x = (idx / Math.max(1, dailyAccuracySeries.length - 1)) * width;
+        const y = height - (Math.max(0, Math.min(100, item.accuracy)) / 100) * height;
+        return `${x.toFixed(2)},${y.toFixed(2)}`;
+      })
+      .join(" ");
+  }, [dailyAccuracySeries]);
+  const reviewChapterIndex = useMemo(() => {
+    if (Array.isArray(assessmentStatuses) && assessmentStatuses.length > 0) {
+      const sorted = [...assessmentStatuses].sort((a, b) => {
+        const at = new Date(a?.updatedAt || 0).getTime();
+        const bt = new Date(b?.updatedAt || 0).getTime();
+        return bt - at;
+      });
+      const latest = sorted[0];
+      if (Number.isFinite(Number(latest?.chapterIndex))) {
+        return Number(latest.chapterIndex);
+      }
+    }
+    return currentChapterIndex;
+  }, [assessmentStatuses, currentChapterIndex]);
   const toggleChapterCollapse = (chapterIndex) => {
     setCollapsedChapters((prev) => ({
       ...prev,
@@ -161,36 +250,61 @@ export function CandidateSessionPage({
           </button>
         </div>
         <div className="mentor-rail-bottom">
-          <button className="mentor-rail-btn danger" type="button" onClick={disconnectAndLogout}>⎋</button>
+          <button className="mentor-logout-btn" type="button" onClick={disconnectAndLogout}>Logout</button>
         </div>
       </aside>
       <section className="interview-root">
-        <div className="topbar">
-          <div className="topbar-left">
-            <div className="brand">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2">
-                <rect x="2" y="4" width="20" height="16" rx="3" />
-                <path d="M2 8l10 6 10-6" />
-              </svg>
+        <div className={`main-content anagha-layout ${currentView === "chat" ? "" : "view-hidden"}`}>
+          <div className="right-col">
+            <div className="transcript-card">
+              <div className="transcript-header">
+                <p>Conversation transcript</p>
+                <span>{visibleMessages.length} messages · {userMessageCount} user turns</span>
+              </div>
+              <div ref={transcriptBodyRef} className="transcript-body">
+                {!avatarReady ? <p className="empty">Transcript will appear once avatar is ready.</p> : null}
+                {avatarReady && visibleMessages.length === 0 ? <p className="empty">No conversation yet.</p> : null}
+                {visibleMessages.map((message) => {
+                  const isUser = message.role === "user";
+                  const isAi = message.role === "ai";
+                  return (
+                    <div key={message.id} className={`msg ${isUser ? "right" : ""}`}>
+                      <span className={`msg-label ${isAi ? "ai" : isUser ? "user" : "system"}`}>{isAi ? "AI mentor" : isUser ? "You" : "System"}</span>
+                      <div className={`msg-bubble ${isAi ? "ai" : isUser ? "user" : "system"}`}>{message.text}</div>
+                    </div>
+                  );
+                })}
+                {avatarReady && aiSpeaking ? <div className="typing"><span /><span /><span /></div> : null}
+              </div>
             </div>
-            <div className="session-info">
-              <p>{sessionTitle}</p>
-              <span>{sessionSubtitle}</span>
+            <div className="controls-bar">
+              <div className="chat-input-row in-controls">
+                <input className="chat-input" type="text" value={chatInput} onChange={onChatInputChange} onKeyDown={(event) => {
+                  if (event.key === "Enter") {
+                    event.preventDefault();
+                    onSendTextMessage();
+                  }
+                }} placeholder={chatPlaceholder} />
+                <button className="chat-send-btn" onClick={onSendTextMessage} disabled={!chatInput?.trim()}>Send</button>
+              </div>
+              <button className={`ptalk-btn ${status === "listening" ? "talking" : ""}`} onPointerDown={handleTalkPointerDown} onPointerUp={handleTalkPointerUp} onPointerCancel={handleTalkPointerUp}>
+                <span>{status === "listening" ? "Listening" : "Talk"}</span>
+              </button>
+              <button className="end-btn" onClick={endConversation} disabled={endingConversation}>{endingConversation ? "Ending..." : "End call"}</button>
             </div>
+            <p className="status-note">Tip: Hold the Talk button or Space to speak, then release to send.</p>
+            {liveSttText ? <p className="status-note">{liveSttText}</p> : null}
+            {socketError ? <p className="error-note">{socketError}</p> : null}
           </div>
-          <div className="live-dot">
-            <div className="dot-pulse" />
-            Live <span className="session-timer">{sessionTimer}</span>
-          </div>
-            <div className="topbar-right">
-              <button className="icon-btn" onClick={interruptAi}>Interrupt</button>
-              <button className="icon-btn danger" onClick={disconnectAndLogout}>Logout</button>
-            </div>
-          </div>
-          <div className={`main-content anagha-layout ${currentView === "chat" ? "" : "view-hidden"}`}>
           <div className="left-stack">
             <div className="video-card">
               <div className="video-inner">
+                <div className="avatar-session-chip">
+                  <div className="dot-pulse" />
+                  <span className="avatar-session-title">{sessionTitle}</span>
+                  <span className="avatar-session-live">Live</span>
+                  <span className="session-timer">{sessionTimer}</span>
+                </div>
                 <div ref={avatarContainerRef} className="avatar-host" />
                 {avatarLoading ? (
                   <div className="av-loader-wrap">
@@ -263,49 +377,47 @@ export function CandidateSessionPage({
                   <p className="planner-task-empty">No tasks yet. Start a chapter to see today's task plan.</p>
                 )}
               </div>
-              <div className="planner-note">Hold Space or the mic button to talk.</div>
-            </div>
-          </div>
-          <div className="right-col">
-            <div className="transcript-card">
-              <div className="transcript-header">
-                <p>Conversation transcript</p>
-                <span>{visibleMessages.length} messages · {userMessageCount} user turns</span>
-              </div>
-              <div ref={transcriptBodyRef} className="transcript-body">
-                {!avatarReady ? <p className="empty">Transcript will appear once avatar is ready.</p> : null}
-                {avatarReady && visibleMessages.length === 0 ? <p className="empty">No conversation yet.</p> : null}
-                {visibleMessages.map((message) => {
-                  const isUser = message.role === "user";
-                  const isAi = message.role === "ai";
-                  return (
-                    <div key={message.id} className={`msg ${isUser ? "right" : ""}`}>
-                      <span className={`msg-label ${isAi ? "ai" : isUser ? "user" : "system"}`}>{isAi ? "AI mentor" : isUser ? "You" : "System"}</span>
-                      <div className={`msg-bubble ${isAi ? "ai" : isUser ? "user" : "system"}`}>{message.text}</div>
-                    </div>
-                  );
-                })}
-                {avatarReady && aiSpeaking ? <div className="typing"><span /><span /><span /></div> : null}
+              <div className="planner-note">
+                {expectedTopicCompletionInfo.label
+                  ? `Expected current-topic completion: ${expectedTopicCompletionInfo.label}`
+                  : expectedTopicCompletionInfo.stale
+                    ? "Start current topic to get a fresh completion ETA."
+                    : ""}
               </div>
             </div>
-            <div className="controls-bar">
-              <div className="chat-input-row in-controls">
-                <input className="chat-input" type="text" value={chatInput} onChange={onChatInputChange} onKeyDown={(event) => {
-                  if (event.key === "Enter") {
-                    event.preventDefault();
-                    onSendTextMessage();
-                  }
-                }} placeholder={chatPlaceholder} />
-                <button className="chat-send-btn" onClick={onSendTextMessage} disabled={!chatInput?.trim()}>Send</button>
+            <div className="planner-accuracy-card">
+              <div className="planner-accuracy-head">
+                <div>
+                  <p>Daily Assessment Accuracy</p>
+                  <span>Last 7 days</span>
+                </div>
+                <div className="planner-accuracy-meta">
+                  <strong>{latestAccuracy}%</strong>
+                  <small className={accuracyDelta >= 0 ? "up" : "down"}>
+                    {accuracyDelta >= 0 ? "+" : ""}{accuracyDelta}%
+                  </small>
+                </div>
               </div>
-              <button className={`ptalk-btn ${status === "listening" ? "talking" : ""}`} onPointerDown={handleTalkPointerDown} onPointerUp={handleTalkPointerUp} onPointerCancel={handleTalkPointerUp}>
-                <span>{status === "listening" ? "Listening" : "Talk"}</span>
-              </button>
-              <button className="end-btn" onClick={endConversation} disabled={endingConversation}>{endingConversation ? "Ending..." : "End call"}</button>
+              <div className="planner-accuracy-chart">
+                <svg viewBox="0 0 300 110" preserveAspectRatio="none" role="img" aria-label="Daily assessment accuracy">
+                  {[20, 40, 60, 80].map((tick) => {
+                    const y = 92 - (tick / 100) * 92;
+                    return <line key={tick} x1="0" y1={y} x2="300" y2={y} className="accuracy-grid-line" />;
+                  })}
+                  <polyline points={accuracyChartPoints} className="accuracy-line" />
+                  {dailyAccuracySeries.map((point, idx) => {
+                    const x = (idx / Math.max(1, dailyAccuracySeries.length - 1)) * 300;
+                    const y = 92 - (Math.max(0, Math.min(100, point.accuracy)) / 100) * 92;
+                    return <circle key={point.key} cx={x} cy={y} r="3.5" className="accuracy-dot" />;
+                  })}
+                </svg>
+                <div className="planner-accuracy-labels">
+                  {dailyAccuracySeries.map((point) => (
+                    <span key={point.key}>{point.label}</span>
+                  ))}
+                </div>
+              </div>
             </div>
-            <p className="status-note">Tip: Hold the Talk button or Space to speak, then release to send.</p>
-            {liveSttText ? <p className="status-note">{liveSttText}</p> : null}
-            {socketError ? <p className="error-note">{socketError}</p> : null}
           </div>
 
           <div className="study-roadmap-sidebar">
@@ -409,7 +521,9 @@ export function CandidateSessionPage({
                   <button type="button" onClick={() => onTakeChapterAssessment(currentChapterIndex)}>
                     Take Assessment
                   </button>
-                  <button type="button" onClick={interruptAi}>Review Mistakes</button>
+                  <button type="button" onClick={() => onReviewChapterMistakes?.(reviewChapterIndex)}>
+                    Review Mistakes
+                  </button>
                 </div>
               </div>
             </div>
@@ -481,47 +595,98 @@ export function CandidateSessionPage({
                   Close
                 </button>
               </div>
-              <p className="assessment-instructions">Choose one option for each question.</p>
-              <div className="assessment-body">
-                {(assessmentModal.questions || []).map((item, index) => (
-                  <div key={item.id || index} className="assessment-question">
-                    <p>
-                      {index + 1}. {item.question}
-                    </p>
-                    <div className="assessment-options">
-                      {(item.options || []).map((option) => {
-                        const selected = assessmentAnswers?.[item.id] === option;
-                        return (
-                          <button
-                            key={option}
-                            type="button"
-                            className={`assessment-option ${selected ? "selected" : ""}`}
-                            onClick={() => onAssessmentAnswer(item.id, option)}
-                          >
-                            {option}
-                          </button>
-                        );
-                      })}
-                    </div>
+              {assessmentModal.type === "mistakes" ? (
+                <>
+                  <p className="assessment-instructions">
+                    Score: {assessmentModal.score}/{assessmentModal.totalQuestions}
+                  </p>
+                  <div className="assessment-week-tabs">
+                    {(studyProgress?.studyMaterialId?.chapters || []).map((chapter, index) => (
+                      <button
+                        key={chapter?._id || index}
+                        type="button"
+                        className={`assessment-week-tab ${assessmentModal.chapterIndex === index ? "active" : ""}`}
+                        onClick={() => onReviewChapterMistakes?.(index)}
+                      >
+                        <span>Week {index + 1}</span>
+                        <small>{chapter?.chapterTitle || `Chapter ${index + 1}`}</small>
+                      </button>
+                    ))}
                   </div>
-                ))}
-              </div>
-              <div className="assessment-footer">
-                {!assessmentSubmitted ? (
-                  <button className="assessment-submit" type="button" onClick={onSubmitAssessment}>
-                    Submit
-                  </button>
-                ) : (
-                  <div className="assessment-result-summary">
-                    {assessmentModal.type === "chapter" ? (
-                      <p>Assessment submitted successfully! Check your status in the sidebar.</p>
+                  <div className="assessment-body">
+                    {reviewLoading ? (
+                      <div className="assessment-question">
+                        <p>Loading week mistakes...</p>
+                      </div>
+                    ) : (assessmentModal.mistakes || []).length === 0 ? (
+                      <div className="assessment-question">
+                        <p>Great work. No mistakes found in your latest attempt for this chapter.</p>
+                      </div>
                     ) : (
-                      <span>Assessment submitted. You can close this window.</span>
+                      (assessmentModal.mistakes || []).map((item, index) => (
+                        <div key={item.id || index} className="assessment-question">
+                          <p>{index + 1}. {item.question}</p>
+                          <p className="assessment-answer-wrong">
+                            <strong>Your answer:</strong> {item.selectedOption || "Not answered"}
+                          </p>
+                          <p className="assessment-answer-correct">
+                            <strong>Correct answer:</strong> {item.correctAnswer || "-"}
+                          </p>
+                        </div>
+                      ))
                     )}
-                    <button className="assessment-submit" onClick={onCloseAssessment}>Close</button>
                   </div>
-                )}
-              </div>
+                  <div className="assessment-footer">
+                    <button className="assessment-submit" type="button" onClick={onCloseAssessment}>
+                      Close
+                    </button>
+                  </div>
+                </>
+              ) : (
+                <>
+                  <p className="assessment-instructions">Choose one option for each question.</p>
+                  <div className="assessment-body">
+                    {(assessmentModal.questions || []).map((item, index) => (
+                      <div key={item.id || index} className="assessment-question">
+                        <p>
+                          {index + 1}. {item.question}
+                        </p>
+                        <div className="assessment-options">
+                          {(item.options || []).map((option) => {
+                            const selected = assessmentAnswers?.[item.id] === option;
+                            return (
+                              <button
+                                key={option}
+                                type="button"
+                                className={`assessment-option ${selected ? "selected" : ""}`}
+                                onClick={() => onAssessmentAnswer(item.id, option)}
+                              >
+                                {option}
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                  <div className="assessment-footer">
+                    {!assessmentSubmitted ? (
+                      <button className="assessment-submit" type="button" onClick={onSubmitAssessment}>
+                        Submit
+                      </button>
+                    ) : (
+                      <div className="assessment-result-summary">
+                        {assessmentModal.type === "chapter" ? (
+                          <p>Assessment submitted successfully! Check your status in the sidebar.</p>
+                        ) : (
+                          <span>Assessment submitted. You can close this window.</span>
+                        )}
+                        <button className="assessment-submit" onClick={onCloseAssessment}>Close</button>
+                      </div>
+                    )}
+                  </div>
+                </>
+              )}
             </div>
           </div>
         ) : null}
@@ -533,6 +698,13 @@ export function CandidateSessionPage({
               <p>Preparing your AI assessment...</p>
               <span>Our AI is generating 10 specific questions for this chapter.</span>
             </div>
+          </div>
+        ) : null}
+        {reviewToast?.open ? (
+          <div className="inline-review-toast" role="status" aria-live="polite">
+            <div className="inline-review-toast-title">Review Update</div>
+            <div className="inline-review-toast-message">{reviewToast.message}</div>
+            <button type="button" onClick={onDismissReviewToast}>Dismiss</button>
           </div>
         ) : null}
       </section>

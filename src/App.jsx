@@ -148,6 +148,9 @@ function App() {
   const [studyProgress, setStudyProgress] = useState(null);
   const [assessmentStatuses, setAssessmentStatuses] = useState([]);
   const [assessmentLoading, setAssessmentLoading] = useState(false);
+  const [reviewLoading, setReviewLoading] = useState(false);
+  const [reviewToast, setReviewToast] = useState({ open: false, message: "" });
+  const [reviewMistakesCache, setReviewMistakesCache] = useState({});
 
   const socketRef = useRef(null);
   const livekitRoomRef = useRef(null);
@@ -345,6 +348,81 @@ function App() {
       setAssessmentLoading(false);
     }
   };
+
+  const handleReviewChapterMistakes = async (chapterIndex) => {
+    if (!token) return;
+    const chapterTitle = String(
+      studyProgressRef.current?.studyMaterialId?.chapters?.[chapterIndex]?.chapterTitle || "",
+    ).trim();
+    const modalTitle = chapterTitle
+      ? `Review Mistakes (Week ${chapterIndex + 1}: ${chapterTitle})`
+      : `Review Mistakes (Week ${chapterIndex + 1})`;
+
+    // Keep modal stable and switch selected tab immediately.
+    setAssessmentModal((prev) => ({
+      ...prev,
+      open: true,
+      type: "mistakes",
+      chapterIndex,
+      title: modalTitle,
+    }));
+
+    const cached = reviewMistakesCache?.[chapterIndex];
+    if (cached) {
+      setAssessmentModal((prev) => ({
+        ...prev,
+        open: true,
+        type: "mistakes",
+        chapterIndex,
+        title: modalTitle,
+        score: cached.score,
+        totalQuestions: cached.totalQuestions,
+        mistakes: Array.isArray(cached.mistakes) ? cached.mistakes : [],
+      }));
+      return;
+    }
+
+    setReviewLoading(true);
+    try {
+      const payload = await requestJsonWithFallback(`/data/study/chapters/${chapterIndex}/mistakes`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const data = payload?.data;
+      if (!data) return;
+      setReviewMistakesCache((prev) => ({
+        ...prev,
+        [chapterIndex]: {
+          score: data.score,
+          totalQuestions: data.totalQuestions,
+          mistakes: Array.isArray(data.mistakes) ? data.mistakes : [],
+        },
+      }));
+      setAssessmentModal({
+        open: true,
+        type: "mistakes",
+        chapterIndex,
+        title: modalTitle,
+        score: data.score,
+        totalQuestions: data.totalQuestions,
+        mistakes: Array.isArray(data.mistakes) ? data.mistakes : [],
+      });
+    } catch (error) {
+      setReviewToast({
+        open: true,
+        message: error.message || "Failed to load mistakes.",
+      });
+    } finally {
+      setReviewLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (!reviewToast.open) return undefined;
+    const timer = window.setTimeout(() => {
+      setReviewToast({ open: false, message: "" });
+    }, 3200);
+    return () => window.clearTimeout(timer);
+  }, [reviewToast]);
 
   useEffect(() => {
     if (isAdminPath) {
@@ -1818,12 +1896,14 @@ function App() {
             const selected = assessmentAnswers[q.id];
             return {
               id: q.id,
+              question: q.question,
               selected,
+              correctAnswer: q.correctAnswer,
               isCorrect: selected === q.correctAnswer,
             };
           });
           try {
-            await fetch(`${API_BASE_URL}/data/study/chapters/${assessmentModal.chapterIndex}/submit`, {
+            await requestJsonWithFallback(`/data/study/chapters/${assessmentModal.chapterIndex}/submit`, {
               method: "POST",
               headers: {
                 "Content-Type": "application/json",
@@ -1831,10 +1911,38 @@ function App() {
               },
               body: JSON.stringify({ answers: formattedAnswers }),
             });
+            const score = formattedAnswers.filter((item) => item.isCorrect).length;
+            const totalQuestions = formattedAnswers.length || 10;
+            const nowIso = new Date().toISOString();
+            setAssessmentStatuses((prev) => {
+              const current = Array.isArray(prev) ? prev : [];
+              const existingIdx = current.findIndex(
+                (item) => Number(item?.chapterIndex) === Number(assessmentModal.chapterIndex),
+              );
+              const nextItem = {
+                chapterIndex: Number(assessmentModal.chapterIndex),
+                score,
+                totalQuestions,
+                attempts:
+                  existingIdx >= 0
+                    ? Number(current[existingIdx]?.attempts || 0) + 1
+                    : 1,
+                updatedAt: nowIso,
+              };
+              if (existingIdx >= 0) {
+                const updated = [...current];
+                updated[existingIdx] = { ...updated[existingIdx], ...nextItem };
+                return updated;
+              }
+              return [...current, nextItem];
+            });
             setAssessmentSubmitted(true);
             loadAssessmentStatuses(token);
           } catch (error) {
-            alert("Failed to submit assessment.");
+            setReviewToast({
+              open: true,
+              message: error?.message || "Failed to submit assessment.",
+            });
           }
         } else {
           setAssessmentSubmitted(true);
@@ -1846,7 +1954,11 @@ function App() {
       studyProgress={studyProgress}
       assessmentStatuses={assessmentStatuses}
       assessmentLoading={assessmentLoading}
+      reviewLoading={reviewLoading}
       onTakeChapterAssessment={handleTakeChapterAssessment}
+      onReviewChapterMistakes={handleReviewChapterMistakes}
+      reviewToast={reviewToast}
+      onDismissReviewToast={() => setReviewToast({ open: false, message: "" })}
       weeklyStudyHours={weeklyStudyHours}
     />
   );
