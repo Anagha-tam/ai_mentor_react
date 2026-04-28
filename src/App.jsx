@@ -365,6 +365,9 @@ function App() {
       type: "mistakes",
       chapterIndex,
       title: modalTitle,
+      score: 0,
+      totalQuestions: 0,
+      mistakes: [],
     }));
 
     const cached = reviewMistakesCache?.[chapterIndex];
@@ -407,6 +410,16 @@ function App() {
         mistakes: Array.isArray(data.mistakes) ? data.mistakes : [],
       });
     } catch (error) {
+      setAssessmentModal((prev) => ({
+        ...prev,
+        open: true,
+        type: "mistakes",
+        chapterIndex,
+        title: modalTitle,
+        score: 0,
+        totalQuestions: 0,
+        mistakes: [],
+      }));
       setReviewToast({
         open: true,
         message: error.message || "Failed to load mistakes.",
