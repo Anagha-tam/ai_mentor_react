@@ -84,6 +84,20 @@ async function requestJsonWithFallback(path, options = {}) {
   throw lastError;
 }
 
+function bestEffortEndAvatarSession(jwtToken) {
+  const token = String(jwtToken || "").trim();
+  if (!token) return;
+  try {
+    void fetch(`${API_BASE_URL}/avatar/bey/end`, {
+      method: "POST",
+      headers: { Authorization: `Bearer ${token}` },
+      keepalive: true,
+    }).catch(() => {});
+  } catch {
+    // Ignore teardown errors during unload.
+  }
+}
+
 function App() {
   const [authMode, setAuthMode] = useState("login");
   const [loginEmail, setLoginEmail] = useState("demo@aimentor.app");
@@ -182,6 +196,7 @@ function App() {
   const aiSilencedRef = useRef(false);
   const audioUnlockedRef = useRef(false);
   const avatarSetupRunIdRef = useRef(0);
+  const unloadTeardownSentRef = useRef(false);
 
   const isLoggedIn = Boolean(token);
   const isProfileComplete = useMemo(() => onboardingCompleted === true, [onboardingCompleted]);
@@ -465,6 +480,11 @@ function App() {
 
   useEffect(() => {
     return () => {
+      const jwtToken = token || window.localStorage.getItem(TOKEN_STORAGE_KEY) || "";
+      if (!unloadTeardownSentRef.current) {
+        unloadTeardownSentRef.current = true;
+        bestEffortEndAvatarSession(jwtToken);
+      }
       if (socketRef.current) socketRef.current.disconnect();
       if (livekitRoomRef.current) livekitRoomRef.current.disconnect();
       if (camStreamRef.current) {
@@ -473,7 +493,31 @@ function App() {
       }
       avatarBootstrappedRef.current = false;
     };
-  }, []);
+  }, [token]);
+
+  useEffect(() => {
+    const sendTeardown = () => {
+      if (unloadTeardownSentRef.current) return;
+      const jwtToken = token || window.localStorage.getItem(TOKEN_STORAGE_KEY) || "";
+      if (!jwtToken) return;
+      unloadTeardownSentRef.current = true;
+      bestEffortEndAvatarSession(jwtToken);
+    };
+
+    const onPageHide = () => {
+      sendTeardown();
+    };
+    const onBeforeUnload = () => {
+      sendTeardown();
+    };
+
+    window.addEventListener("pagehide", onPageHide);
+    window.addEventListener("beforeunload", onBeforeUnload);
+    return () => {
+      window.removeEventListener("pagehide", onPageHide);
+      window.removeEventListener("beforeunload", onBeforeUnload);
+    };
+  }, [token]);
 
   useEffect(() => {
     if (isAdminPath || !isLoggedIn) return;
@@ -1184,6 +1228,13 @@ function App() {
         return;
       }
       livekitRoomRef.current = room;
+      // Try to prime audio immediately after connect; if browser blocks autoplay,
+      // existing user-gesture unlock handlers still retry.
+      try {
+        await room.startAudio();
+      } catch {
+        // no-op
+      }
       avatarReconnectAttemptsRef.current = 0;
 
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
@@ -1693,6 +1744,7 @@ function App() {
       } catch {
         // Best-effort cleanup of LiveKit/Bey resources.
       }
+      unloadTeardownSentRef.current = true;
     }
     disconnectRealtime();
     resetCandidateStateAfterLogout();
@@ -1707,6 +1759,7 @@ function App() {
         method: "POST",
         headers: { Authorization: `Bearer ${token}` },
       });
+      unloadTeardownSentRef.current = true;
       disconnectRealtime();
       setSessionEndedScreen(true);
       appendMessage({
