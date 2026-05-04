@@ -10,7 +10,7 @@ import { CandidateLoginPage } from "./pages/CandidateLoginPage.jsx";
 import { CandidateSessionPage } from "./pages/CandidateSessionPage.jsx";
 import "./App.css";
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:4000";
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:4004";
 const SOCKET_CONFIG = (() => {
   try {
     const parsed = new URL(API_BASE_URL);
