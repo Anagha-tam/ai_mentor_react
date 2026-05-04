@@ -333,9 +333,12 @@ function App() {
       const payload = await requestJsonWithFallback("/data/study/assessment-statuses", {
         headers: { Authorization: `Bearer ${jwtToken}` },
       });
-      setAssessmentStatuses(Array.isArray(payload?.data) ? payload.data : []);
-    } catch {
-      // Not critical if fails
+      console.log("[DEBUG] assessmentStatuses payload:", JSON.stringify(payload));
+      const statuses = Array.isArray(payload?.data) ? payload.data : [];
+      console.log("[DEBUG] assessmentStatuses setting:", JSON.stringify(statuses));
+      setAssessmentStatuses(statuses);
+    } catch (err) {
+      console.error("[DEBUG] assessmentStatuses load failed:", err);
     }
   };
 

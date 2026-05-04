@@ -45,29 +45,63 @@ export function CandidateSessionPage({
   const [currentView, setCurrentView] = useState("chat");
   const [collapsedChapters, setCollapsedChapters] = useState({});
   const [accuracyHoverIndex, setAccuracyHoverIndex] = useState(null);
-  const resolvedStudyMaterial = useMemo(() => {
-    const material = studyProgress?.studyMaterialId;
-    if (material && typeof material === "object" && Array.isArray(material.chapters)) {
-      return material;
+  const { resolvedStudyMaterial, derivedChapterIndex, derivedTopicIndex, isCompleted } = useMemo(() => {
+    if (!Array.isArray(studyProgress) || studyProgress.length === 0) {
+      return { resolvedStudyMaterial: null, derivedChapterIndex: 0, derivedTopicIndex: 0, isCompleted: false };
     }
-    const plan = studyProgress?.studyPlanId;
-    if (plan && typeof plan === "object" && Array.isArray(plan.weeks)) {
-      return {
-        _id: plan._id,
-        subject: plan.planName || "General Plan",
-        chapters: plan.weeks.map((week, weekIdx) => ({
-          _id: week?._id || `week-${weekIdx + 1}`,
-          chapterNumber: Number(week?.weekNumber || weekIdx + 1),
-          chapterTitle: String(week?.title || `Week ${weekIdx + 1}`),
-          topics: (Array.isArray(week?.topics) ? week.topics : []).map((topic, topicIdx) => ({
-            _id: `${week?._id || `week-${weekIdx + 1}`}-topic-${topicIdx}`,
-            title: String(topic || ""),
-          })),
-        })),
+
+    const currentSubject = studyProgress[0]?.taskId?.stream || "General";
+    const chaptersMap = new Map();
+    let flatTasks = [];
+
+    studyProgress.forEach((flow, idx) => {
+      const task = flow.taskId;
+      const chTitle = task?.chapterTitle || "Chapter 1";
+      if (!chaptersMap.has(chTitle)) {
+        chaptersMap.set(chTitle, {
+          _id: `chapter-${chaptersMap.size + 1}`,
+          chapterNumber: chaptersMap.size + 1,
+          chapterTitle: chTitle,
+          topics: [],
+        });
+      }
+      const mappedTopic = {
+        _id: task?._id || `topic-${idx}`,
+        title: task?.topic || `Topic ${idx + 1}`,
+        status: flow.status,
       };
+      chaptersMap.get(chTitle).topics.push(mappedTopic);
+      flatTasks.push({ chTitle, topicIndex: chaptersMap.get(chTitle).topics.length - 1, status: flow.status });
+    });
+
+    const chapters = Array.from(chaptersMap.values());
+    const isCompleted = studyProgress.every((f) => f.status === "completed");
+    
+    let derivedChapterIndex = 0;
+    let derivedTopicIndex = 0;
+
+    const activeIndex = flatTasks.findIndex((t) => t.status === "in_progress");
+    if (activeIndex !== -1) {
+      const activeTask = flatTasks[activeIndex];
+      derivedChapterIndex = chapters.findIndex((c) => c.chapterTitle === activeTask.chTitle);
+      derivedTopicIndex = activeTask.topicIndex;
+    } else if (isCompleted) {
+      derivedChapterIndex = chapters.length > 0 ? chapters.length - 1 : 0;
+      derivedTopicIndex = chapters[derivedChapterIndex]?.topics.length > 0 ? chapters[derivedChapterIndex].topics.length - 1 : 0;
     }
-    return null;
+
+    return {
+      resolvedStudyMaterial: {
+        _id: "task-based-plan",
+        subject: currentSubject,
+        chapters,
+      },
+      derivedChapterIndex,
+      derivedTopicIndex,
+      isCompleted,
+    };
   }, [studyProgress]);
+
   const getLocalDateKey = (dateInput) => {
     const date = dateInput instanceof Date ? dateInput : new Date(dateInput);
     if (Number.isNaN(date.getTime())) return "";
@@ -76,19 +110,20 @@ export function CandidateSessionPage({
     const day = String(date.getDate()).padStart(2, "0");
     return `${year}-${month}-${day}`;
   };
+
   useEffect(() => {
     const chapters = resolvedStudyMaterial?.chapters;
     if (!Array.isArray(chapters) || chapters.length === 0) return;
-    const activeChapterIndex = Number(studyProgress?.currentChapterIndex || 0);
     setCollapsedChapters((prev) => {
       if (Object.keys(prev).length > 0) return prev;
       const next = {};
       chapters.forEach((_, idx) => {
-        next[idx] = idx !== activeChapterIndex;
+        next[idx] = idx !== derivedChapterIndex;
       });
       return next;
     });
-  }, [studyProgress, resolvedStudyMaterial]);
+  }, [derivedChapterIndex, resolvedStudyMaterial]);
+
   const plannerData = useMemo(() => {
     const now = new Date();
     const monthLabel = now.toLocaleString("en-US", { month: "short", year: "numeric" });
@@ -104,13 +139,12 @@ export function CandidateSessionPage({
     });
     return { monthLabel, days };
   }, []);
-  const currentChapterIndex = Number(studyProgress?.currentChapterIndex || 0);
-  const currentTopicIndex = Number(studyProgress?.currentTopicIndex || 0);
+
+  const currentChapterIndex = derivedChapterIndex;
+  const currentTopicIndex = derivedTopicIndex;
   const currentSubject = String(resolvedStudyMaterial?.subject || "").trim();
   const currentChapter = resolvedStudyMaterial?.chapters?.[currentChapterIndex] || null;
-  const totalChapters = Array.isArray(resolvedStudyMaterial?.chapters)
-    ? resolvedStudyMaterial.chapters.length
-    : 0;
+  const totalChapters = Array.isArray(resolvedStudyMaterial?.chapters) ? resolvedStudyMaterial.chapters.length : 0;
   const sessionTitle = currentSubject ? `${currentSubject} Mentor` : "AI Mentor";
   const dashboardSubtitle = currentSubject ? `${currentSubject} analytics` : "Session analytics";
   const roadmapSubtitle = currentSubject ? `${currentSubject} plan` : "Study plan";
@@ -139,8 +173,13 @@ export function CandidateSessionPage({
   const todaysTaskProgressPct =
     todaysTaskItems.length > 0 ? Math.round((todaysTaskDoneCount / todaysTaskItems.length) * 100) : 0;
   const expectedTopicCompletionInfo = useMemo(() => {
-    const raw = studyProgress?.expectedTopicCompletionAt;
-    if (!raw || studyProgress?.isCompleted) return { label: "", stale: false };
+    if (!Array.isArray(studyProgress) || studyProgress.length === 0 || isCompleted) {
+      return { label: "", stale: false };
+    }
+    const activeFlow = studyProgress.find(f => f.status === "in_progress");
+    const raw = activeFlow?.expectedCompletionAt;
+    if (!raw) return { label: "", stale: false };
+    
     const date = new Date(raw);
     if (Number.isNaN(date.getTime())) return { label: "", stale: false };
     const stale = date.getTime() < Date.now();
@@ -149,7 +188,7 @@ export function CandidateSessionPage({
       label: date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
       stale: false,
     };
-  }, [studyProgress]);
+  }, [studyProgress, isCompleted]);
   const streakDays = useMemo(() => {
     if (!Array.isArray(weeklyStudyHours) || weeklyStudyHours.length === 0) return 0;
     let count = 0;
@@ -542,8 +581,8 @@ export function CandidateSessionPage({
             </div>
             <div className="sidebar-content">
               {resolvedStudyMaterial?.chapters?.map((chapter, cIdx) => {
-                const isChapterActive = cIdx === studyProgress.currentChapterIndex;
-                const isChapterDone = cIdx < studyProgress.currentChapterIndex;
+                const isChapterActive = cIdx === derivedChapterIndex;
+                const isChapterDone = cIdx < derivedChapterIndex;
                 const isCollapsed = Boolean(collapsedChapters[cIdx]);
 
                 return (
@@ -566,7 +605,7 @@ export function CandidateSessionPage({
                       <span className="chapter-collapse-icon">{isCollapsed ? "▸" : "▾"}</span>
                       <div className="chapter-actions">
                         {(() => {
-                          const status = assessmentStatuses.find((s) => s.chapterIndex === cIdx);
+                          const status = (assessmentStatuses || []).find((s) => Number(s?.chapterIndex) === Number(cIdx));
                           if (status) {
                             return (
                               <>
@@ -583,8 +622,8 @@ export function CandidateSessionPage({
                     </div>
                     <div className={`sidebar-topics-list ${isCollapsed ? "collapsed" : ""}`}>
                       {chapter.topics?.map((topic, tIdx) => {
-                        const isTopicActive = isChapterActive && tIdx === studyProgress.currentTopicIndex;
-                        const isTopicDone = isChapterDone || (isChapterActive && tIdx < studyProgress.currentTopicIndex);
+                        const isTopicActive = isChapterActive && tIdx === derivedTopicIndex;
+                        const isTopicDone = isChapterDone || (isChapterActive && tIdx < derivedTopicIndex);
 
                         return (
                           <div key={tIdx} className={`sidebar-topic-item ${isTopicActive ? "active" : ""} ${isTopicDone ? "done" : ""}`}>
@@ -679,8 +718,8 @@ export function CandidateSessionPage({
             </div>
             <div className="roadmap-list">
               {resolvedStudyMaterial?.chapters?.map((chapter, cIdx) => {
-                const isDone = cIdx < studyProgress.currentChapterIndex;
-                const isActive = cIdx === studyProgress.currentChapterIndex;
+                const isDone = cIdx < derivedChapterIndex;
+                const isActive = cIdx === derivedChapterIndex;
                 return (
                   <div key={chapter._id || cIdx} className={`roadmap-item ${isDone ? "done" : isActive ? "active" : ""}`}>
                     <strong>Chapter {cIdx + 1}: {chapter.chapterTitle}</strong>
@@ -688,8 +727,8 @@ export function CandidateSessionPage({
                     {isActive && (
                       <ul className="roadmap-topics">
                         {chapter.topics?.map((topic, tIdx) => (
-                          <li key={tIdx} className={tIdx <= studyProgress.currentTopicIndex ? "topic-done" : ""}>
-                            {tIdx === studyProgress.currentTopicIndex ? "→ " : ""}{topic.title}
+                          <li key={tIdx} className={tIdx <= derivedTopicIndex ? "topic-done" : ""}>
+                            {tIdx === derivedTopicIndex ? "→ " : ""}{topic.title}
                           </li>
                         ))}
                       </ul>
